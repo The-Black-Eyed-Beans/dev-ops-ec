@@ -2,6 +2,8 @@ version: '3.3'
 services:
   db:
     image: ethan1597/aline-db
+    env_file:
+      - config.env
     ports:
       - "3307:3306"
 
