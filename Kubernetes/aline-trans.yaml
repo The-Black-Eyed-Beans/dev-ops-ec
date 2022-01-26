@@ -19,47 +19,11 @@ spec:
         image: ethan1597/aline-trans:latest
         ports:
         - containerPort: 8073
-        env:
-        - name: TRANS_PORT
-          valueFrom:
-            configMapKeyRef:
+        envFrom:
+          - configMapRef:
               name: service-config
-              key: trans-port
-        - name: DB_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: service-config
-              key: db-port
-        - name: DB_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: service-config
-              key: db-host
-        - name: DB_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: service-config
-              key: db-name
-        - name: DB_USERNAME
-          valueFrom:
-            secretKeyRef:
+          - secretRef:
               name: service-secret
-              key: user
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: service-secret
-              key: password
-        - name: ENCRYPT_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: service-secret
-              key: encrypt-key
-        - name: JWT_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: service-secret
-              key: jwt-key
 ---
 apiVersion: v1
 kind: Service

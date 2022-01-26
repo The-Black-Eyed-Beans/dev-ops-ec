@@ -19,27 +19,9 @@ spec:
         image: ethan1597/aline-db:latest
         ports:
         - containerPort: 3306
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
+        envFrom:
+          - secretRef:
               name: db-secret
-              key: root-password
-        - name: MYSQL_USER
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: user
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: password
-        - name: MYSQL_DATABASE
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: database
 ---
 apiVersion: v1
 kind: Service
