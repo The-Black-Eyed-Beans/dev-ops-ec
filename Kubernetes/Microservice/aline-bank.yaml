@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         app: aline-bank
+        role: microservice
     spec:
       containers:
       - name: aline-bank-ms

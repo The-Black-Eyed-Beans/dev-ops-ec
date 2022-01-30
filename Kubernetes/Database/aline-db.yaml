@@ -22,6 +22,13 @@ spec:
         envFrom:
           - secretRef:
               name: db-secret
+        volumeMounts:
+        - name: aline-db-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: aline-db-storage
+        persistentVolumeClaim:
+          claimName: aline-db-pvc
 ---
 apiVersion: v1
 kind: Service

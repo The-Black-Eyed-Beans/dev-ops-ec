@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         app: aline-under
+        role: microservice
     spec:
       containers:
       - name: aline-under-ms
