@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aline-under-deployment
+  labels:
+    app: aline-under
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aline-under
+  template:
+    metadata:
+      labels:
+        app: aline-under
+        role: microservice
+    spec:
+      containers:
+      - name: aline-under-ms
+        image: ethan1597/aline-under:latest
+        ports:
+        - name: under-port
+          containerPort: 8071
+        envFrom:
+          - configMapRef:
+              name: service-config
+          - secretRef:
+              name: service-secret

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aline-trans-deployment
+  labels:
+    app: aline-trans
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aline-trans
+  template:
+    metadata:
+      labels:
+        app: aline-trans
+        role: microservice
+    spec:
+      containers:
+      - name: aline-trans-ms
+        image: ethan1597/aline-trans:latest
+        ports:
+        - name: trans-port
+          containerPort: 8073
+        envFrom:
+          - configMapRef:
+              name: service-config
+          - secretRef:
+              name: service-secret

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aline-bank-deployment
+  labels:
+    app: aline-bank
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aline-bank
+  template:
+    metadata:
+      labels:
+        app: aline-bank
+        role: microservice
+    spec:
+      containers:
+      - name: aline-bank-ms
+        image: ethan1597/aline-bank:latest
+        ports:
+        - name: bank-port
+          containerPort: 8083
+        envFrom:
+          - configMapRef:
+              name: service-config
+          - secretRef:
+              name: service-secret

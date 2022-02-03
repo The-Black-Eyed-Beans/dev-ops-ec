@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aline-user-deployment
+  labels:
+    app: aline-user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aline-user
+  template:
+    metadata:
+      labels:
+        app: aline-user
+        role: microservice
+    spec:
+      containers:
+      - name: aline-user-ms
+        image: ethan1597/aline-user:latest
+        ports:
+        - name: user-port
+          containerPort: 8070
+        envFrom:
+          - configMapRef:
+              name: service-config
+          - secretRef:
+              name: service-secret
