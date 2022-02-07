@@ -1,0 +1,37 @@
+version: '3.3'
+services:
+  bank:
+    image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/bank-microservice
+    environment:
+      - APP_PORT=8083
+    env_file:
+      - config.env
+    ports: 
+      - "8083:8083"
+
+  transaction:
+    image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/transaction-microservice
+    environment:
+      - APP_PORT=8073
+    env_file:
+      - config.env
+    ports: 
+      - "8073:8073"
+
+  underwriter:
+    image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/underwriter-microservice
+    environment:
+      - APP_PORT=8071
+    env_file:
+      - config.env
+    ports: 
+      - "8071:8071"
+
+  user:
+    image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/user-microservice
+    environment:
+      - APP_PORT=8070
+    env_file:
+      - config.env
+    ports: 
+      - "8070:8070"
