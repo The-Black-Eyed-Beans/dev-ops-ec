@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: aline-gateway-container
-        image: ethan1597/aline-gateway:latest
+        image: ${ECR_IMAGE_GATE}
         ports:
         - containerPort: 8080
         env:

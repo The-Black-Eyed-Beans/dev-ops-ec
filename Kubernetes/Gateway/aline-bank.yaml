@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: aline-bank-ms
-        image: ethan1597/aline-bank:latest
+        image: ${ECR_IMAGE_BANK}
         ports:
         - name: bank-port
           containerPort: 8083

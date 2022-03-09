@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: aline-user-ms
-        image: ethan1597/aline-user:latest
+        image: ${ECR_IMAGE_USER}
         ports:
         - name: user-port
           containerPort: 8070

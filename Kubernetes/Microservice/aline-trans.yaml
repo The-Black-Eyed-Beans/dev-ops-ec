@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: aline-trans-ms
-        image: ethan1597/aline-trans:latest
+        image: ${ECR_IMAGE_TRANS}
         ports:
         - containerPort: 8073
         envFrom:
