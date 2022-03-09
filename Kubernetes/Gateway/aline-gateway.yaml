@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: aline-gateway-container
-        image: ${ECR_IMAGE_GATE}
+        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/gateway
         ports:
         - containerPort: 8080
         env:

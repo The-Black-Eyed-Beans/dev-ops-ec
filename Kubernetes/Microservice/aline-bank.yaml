@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: aline-bank-ms
-        image: ${ECR_IMAGE_BANK}
+        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/bank-microservice
         ports:
         - containerPort: 8083
         envFrom:

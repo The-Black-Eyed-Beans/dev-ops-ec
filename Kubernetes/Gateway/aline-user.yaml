@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: aline-user-ms
-        image: ${ECR_IMAGE_USER}
+        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/user-microservice
         ports:
         - name: user-port
           containerPort: 8070

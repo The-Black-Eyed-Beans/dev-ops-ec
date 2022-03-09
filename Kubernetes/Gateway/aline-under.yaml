@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: aline-under-ms
-        image: ${ECR_IMAGE_UNDER}
+        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/underwriter-microservice
         ports:
         - name: under-port
           containerPort: 8071
