@@ -2,10 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: aline-bank-deployment
+  namespace: afs-ec
   labels:
     app: aline-bank
 spec:
-  replicas: 1
+  replicas: ${BANK_REPLICAS}
   selector:
     matchLabels:
       app: aline-bank
@@ -17,7 +18,7 @@ spec:
     spec:
       containers:
       - name: aline-bank-ms
-        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/bank-microservice
+        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/bank-microservice-ec:${COMMIT_HASH}
         ports:
         - name: bank-port
           containerPort: 8083
@@ -26,3 +27,10 @@ spec:
               name: service-config
           - secretRef:
               name: service-secret
+        env:
+          - name: APP_PORT
+            value: "8083"
+      imagePullSecrets:
+        - name: regcred
+      nodeSelector:
+        role: microservice
