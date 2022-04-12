@@ -3,11 +3,36 @@ kind: ClusterConfig
 
 metadata:
   name: ec-eks
-  region: us-east-2
+  region: ${AWS_REGION}
+
+vpc:
+  id: ${VPC_ID}
+  cidr: ${VPC_CIDR}
+  subnets:
+    public:
+      public-one:
+        id: ${PUBLIC_SUBNET1}
+      public-two:
+        id: ${PUBLIC_SUBNET2}
+    private:
+      private-one:
+        id: ${PRIVATE_SUBNET1}
+      private-two:
+        id: ${PRIVATE_SUBNET2}
 
 nodeGroups:
-  - name: backend-nodes
-    instanceType: t2.medium
-    desiredCapacity: 2
-    ssh:
-      publicKeyName: ec-eks-cluster-key
+  - name: gateway-ng
+    labels: { role: gateway }
+    instanceType: ${GATEWAY_INSTANCE}
+    desiredCapacity: ${GATEWAY_CAPACITY}
+    subnets:
+      - public-one
+      - public-two
+  - name: microservice-ng
+    labels: { role: microservice }
+    instanceType: ${MICROSERVICE_INSTANCE}
+    desiredCapacity: ${MICROSERVICE_CAPACITY}
+    privateNetworking: true
+    subnets:
+      - private-one
+      - private-two
