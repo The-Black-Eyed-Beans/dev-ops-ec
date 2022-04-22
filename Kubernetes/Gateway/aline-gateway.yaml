@@ -2,10 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: aline-gateway-deployment
+  namespace: afs-ec
   labels:
     app: aline-gateway
 spec:
-  replicas: 1
+  replicas: ${GATEWAY_REPLICAS}
   selector:
     matchLabels:
       app: aline-gateway
@@ -16,7 +17,7 @@ spec:
     spec:
       containers:
       - name: aline-gateway-container
-        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/gateway
+        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/gateway-ec:${COMMIT_HASH}
         ports:
         - containerPort: 8080
         env:
@@ -24,11 +25,16 @@ spec:
             value: "8080"
           - name: APP_SERVICE_HOST
             value: aline-backend-service
+      imagePullSecrets:
+        - name: regcred
+      nodeSelector:
+        role: gateway
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: aline-gateway-service
+  namespace: afs-ec
 spec:
   type: NodePort
   selector:

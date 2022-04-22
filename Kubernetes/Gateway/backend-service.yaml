@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: aline-backend-service
+  namespace: afs-ec
 spec:
   selector:
     role: microservice
