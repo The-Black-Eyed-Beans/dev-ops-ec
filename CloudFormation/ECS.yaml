@@ -372,5 +372,5 @@ Resources:
   ResourceSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: afs-ec/test/resources
+      Name: !Sub afs-ec/${EnvironmentName}/resources
       SecretString: !Sub "{\"VPCID\":\"${VPC}\",\"PublicSubnetID1\":\"${PublicSubnet1}\",\"PublicSubnetID2\":\"${PublicSubnet2}\",\"PrivateSubnetID1\":\"${PrivateSubnet1}\",\"PrivateSubnetID2\":\"${PrivateSubnet2}\",\"ClusterArn\":\"${ECSCluster}\",\"ServiceSG\":\"${MicroserviceServiceSG}\",\"ExecRoleArn\":\"${ExecutionRole}\",\"TaskRoleArn\":\"${TaskRole}\",\"LBArn1\":\"${MicroserviceALB}\",\"LB1DNS\":\"${MicroserviceALB.DNSName}\",\"GatewayLBArn\":\"${GatewayALB}\",\"GatewayServiceSG\":\"${GatewayServiceSG}\"}"

@@ -196,5 +196,5 @@ Resources:
   ResourceSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: afs-ec/test/resources
+      Name: !Sub afs-ec/${EnvironmentName}/resources
       SecretString: !Sub "{\"VPCID\":\"${VPC}\",\"VPCCidr\":\"${VpcCIDR}\",\"PublicSubnetID1\":\"${PublicSubnet1}\",\"PublicSubnetID2\":\"${PublicSubnet2}\",\"PrivateSubnetID1\":\"${PrivateSubnet1}\",\"PrivateSubnetID2\":\"${PrivateSubnet2}\"}"
