@@ -1,0 +1,17 @@
+- name: Create RDS
+  hosts: localhost
+
+  tasks:
+    - name: Create RDS instance
+      rds:
+        command: create
+        instance_name: test-database
+        db_engine: MySQL
+        instance_type: "{{ instance_type }}"
+        size: 20
+        region: "{{ region }}"
+        username: "{{ user }}"
+        password: "{{ password }}"
+        tags:
+          Environment: dev
+	wait: yes

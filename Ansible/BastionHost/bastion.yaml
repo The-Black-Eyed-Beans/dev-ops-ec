@@ -1,0 +1,56 @@
+- name: Create a bastion host EC2
+  hosts: localhost
+  gather_facts: False
+  vars_files:
+    - vars.yaml
+  vars:
+    ansible_ssh_private_key_file: "{{ key }}"
+    ansible_user: "{{ ssh_user }}"
+  tasks:
+    - name: Launch instance
+      ec2:
+         key_name: "{{ keypair }}"
+         group: "{{ security_group }}"
+         instance_type: "{{ instance_type }}"
+         image: "{{ image }}"
+         wait: true
+         region: "{{ region }}"
+         vpc_subnet_id: "{{ subnet }} "
+         assign_public_ip: yes
+         instance_tags:
+           Name: bastion-ec
+      register: ec2
+
+    - name: Add new instance to host group
+      add_host:
+        hostname: "{{ item.public_ip }}"
+        groupname: launched
+      loop: "{{ ec2.instances }}"
+
+    - name: Wait for SSH to come up
+      delegate_to: "{{ item.public_dns_name }}"
+      wait_for_connection:
+        delay: 60
+        timeout: 320
+      loop: "{{ ec2.instances }}"
+
+- name: Install packages
+  hosts: launched
+  user: ubuntu
+  become: yes
+  vars_files:
+    - vars.yaml
+  vars:
+    ansible_ssh_private_key_file: "{{ key }}"
+  tasks: 
+    - name: Install MySQL
+      package:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - mysql-server
+        - mysql-client
+        - python3-mysqldb
+        - libmysqlclient-dev
+      become: yes
