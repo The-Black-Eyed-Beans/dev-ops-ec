@@ -1,0 +1,94 @@
+- name: Create a bastion host EC2
+  hosts: localhost
+  gather_facts: False
+  vars_files:
+    - vars.yaml
+  vars:
+    ansible_ssh_private_key_file: "{{ key }}"
+    ansible_user: "{{ ssh_user }}"
+  tasks:
+    - name: Launch instance
+      ec2:
+         key_name: "{{ keypair }}"
+         group: "{{ security_group }}"
+         instance_type: "{{ instance_type }}"
+         image: "{{ image }}"
+         wait: true
+         region: "{{ region }}"
+         vpc_subnet_id: "{{ subnet }} "
+         assign_public_ip: yes
+         instance_tags:
+           Name: artifactory-ec
+           Environment: "{{ env_name }}"
+      register: ec2
+
+    - name: Add new instance to host group
+      add_host:
+        hostname: "{{ item.public_ip }}"
+        groupname: launched
+      loop: "{{ ec2.instances }}"
+
+    - name: Wait for SSH to come up
+      delegate_to: "{{ item.public_dns_name }}"
+      wait_for_connection:
+        delay: 60
+        timeout: 320
+      loop: "{{ ec2.instances }}"
+
+    - name: Create Route53 record
+      route53:
+        state: present
+        zone: theblackeyedbeans.net
+        record: artifactory-ec.theblackeyedbeans.net
+        type: A
+        ttl: 7200
+        overwrite: yes
+        value: "{{ item.public_ip }}"
+      loop: "{{ ec2.instances }}"
+
+- name: Install packages
+  hosts: launched
+  become: yes
+  vars_files:
+    - vars.yaml
+  vars:
+    ansible_ssh_private_key_file: "{{ key }}"
+    ansible_user: "{{ ssh_user }}"
+  tasks:
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: latest
+        update_cache: true
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Make sure docker is running
+      service:
+        name: docker
+        state: started
+      become: true
+
+    - name: "Pull artifactory docker image"
+      command: "docker pull docker.bintray.io/jfrog/artifactory-pro:latest"
+
+    - name: "Start artifactory container"
+      command: "docker run --name artifactory -d -p 8081:8081 -p 8082:8082 docker.bintray.io/jfrog/artifactory-pro:latest"
