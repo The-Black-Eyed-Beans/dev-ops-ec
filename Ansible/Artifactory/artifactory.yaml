@@ -2,7 +2,6 @@
   hosts: localhost
   gather_facts: False
   vars:
-    ansible_ssh_private_key_file: "{{ key }}"
     ansible_user: "{{ ssh_user }}"
   tasks:
     - name: Launch instance
@@ -48,7 +47,6 @@
   hosts: launched
   become: yes
   vars:
-    ansible_ssh_private_key_file: "{{ key }}"
     ansible_user: "{{ ssh_user }}"
   tasks:
     - name: Install required system packages
