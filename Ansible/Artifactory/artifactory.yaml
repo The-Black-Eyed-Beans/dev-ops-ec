@@ -1,5 +1,5 @@
 - name: Create a bastion host EC2
-  hosts: localhost
+  hosts: local
   gather_facts: False
   vars:
     ansible_user: "{{ ssh_user }}"
