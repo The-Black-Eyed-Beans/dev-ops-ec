@@ -1,8 +1,6 @@
-- name: Create a bastion host EC2
-  hosts: local
+- name: Create an Artifactory server
+  hosts: localhost
   gather_facts: False
-  vars:
-    ansible_user: "{{ ssh_user }}"
   tasks:
     - name: Launch instance
       ec2:
@@ -10,6 +8,8 @@
          group: "{{ security_group }}"
          instance_type: "{{ instance_type }}"
          image: "{{ image }}"
+         aws_access_key: "{{ access_key }}"
+         aws_secret_key: "{{ secret_key }}"
          wait: true
          region: "{{ region }}"
          vpc_subnet_id: "{{ subnet }} "
@@ -26,11 +26,9 @@
       loop: "{{ ec2.instances }}"
 
     - name: Wait for SSH to come up
-      delegate_to: "{{ item.public_dns_name }}"
-      wait_for_connection:
-        delay: 60
-        timeout: 320
-      loop: "{{ ec2.instances }}"
+      delegate_to: localhost
+      wait_for:
+        timeout: 60
 
     - name: Create Route53 record
       route53:
@@ -41,13 +39,13 @@
         ttl: 7200
         overwrite: yes
         value: "{{ item.public_ip }}"
+        aws_access_key: "{{ access_key }}"
+        aws_secret_key: "{{ secret_key }}"
       loop: "{{ ec2.instances }}"
 
 - name: Install packages
   hosts: launched
   become: yes
-  vars:
-    ansible_user: "{{ ssh_user }}"
   tasks:
     - name: Install required system packages
       apt:
