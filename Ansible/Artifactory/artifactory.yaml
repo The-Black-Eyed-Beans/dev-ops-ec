@@ -34,7 +34,7 @@
       route53:
         state: present
         zone: theblackeyedbeans.net
-        record: artifactory-ec.theblackeyedbeans.net
+        record: artifactory2-ec.theblackeyedbeans.net
         type: A
         ttl: 7200
         overwrite: yes
