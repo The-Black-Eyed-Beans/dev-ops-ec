@@ -37,15 +37,15 @@
       file:
         path: /usr/local/bin/docker-compose
         state: absent
-      when: compose_output.stdout != "Docker Compose version v2.5.0"      
+      when: compose_output.stdout != "Docker Compose version v{{ compose_version }}"      
 
     - name: Install Docker Compose
       get_url:
-        url : https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-linux-x86_64
+        url : "https://github.com/docker/compose/releases/download/v{{ compose_version }}/docker-compose-{{ compose_os }}"
         dest: /usr/local/bin/docker-compose
         mode: 'u+x,g+x'
-      when: compose_output.stdout != "Docker Compose version v2.5.0" 
+      when: compose_output.stdout != "Docker Compose version v{{ compose_version }}" 
 
     - debug: 
-        msg="Docker Compose v2.5.0 was already installed"
-      when: compose_output.stdout == "Docker Compose version v2.5.0"
+        msg="Docker Compose v{{ compose version }} was already installed"
+      when: compose_output.stdout == "Docker Compose version v{{ compose_version }}"
