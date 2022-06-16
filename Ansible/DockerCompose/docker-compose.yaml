@@ -49,5 +49,5 @@
       when: compose_output.stdout != expected_output
 
     - debug: 
-        msg="Docker Compose v{{ compose version }} was already installed"
+        msg="Docker Compose v{{ compose_version }} was already installed"
       when: compose_output.stdout == expected_output
