@@ -1,6 +1,8 @@
 - name: Install packages
   hosts: instances
   become: true
+  vars: 
+    expected_output: "Docker Compose version v{{ compose_version }}"
   tasks:
     - name: Install required system packages
       apt:
@@ -37,15 +39,15 @@
       file:
         path: /usr/local/bin/docker-compose
         state: absent
-      when: compose_output.stdout != "Docker Compose version v{{ compose_version }}"      
+      when: compose_output.stdout != expected_output      
 
     - name: Install Docker Compose
       get_url:
         url : "https://github.com/docker/compose/releases/download/v{{ compose_version }}/docker-compose-{{ compose_os }}"
         dest: /usr/local/bin/docker-compose
         mode: 'u+x,g+x'
-      when: compose_output.stdout != "Docker Compose version v{{ compose_version }}" 
+      when: compose_output.stdout != expected_output
 
     - debug: 
         msg="Docker Compose v{{ compose version }} was already installed"
-      when: compose_output.stdout == "Docker Compose version v{{ compose_version }}"
+      when: compose_output.stdout == expected_output
