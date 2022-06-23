@@ -15,6 +15,14 @@ pipeline {
                     def output = sh(returnStdout: true, script: "kubectl get service -n afs-ec")
                     if(output.contains("green") && output.contains("blue")){
                         env.DEPLOYMENT_STATE = "both"
+                        def ingress_output = sh(returnStdout: true, script: "kubectl get ingress main-ingress -o yaml -n afs-ec")
+                        if(ingress_output.contains("blue")){
+                            echo "blue"
+                        }else if(ingress_output.contains("green")){
+                            echo "green"
+                        }else{
+                            return
+                        }
                     }else if(output.contains("green")){
                         env.DEPLOYMENT_STATE = "one"
                     }else if(output.contains("blue")){
