@@ -29,32 +29,32 @@ pipeline {
                 // env.DEPLOYMENT_COLOR = "green" inside script
             }
         }
-    }
 
-    stage("Both deployed") {
-            when {
-                environment(name: "DEPLOYMENT_STATE", value: "both")
-            }
-            steps {
-                echo "Both"
-            }
-    }
+        stage("Both deployed") {
+                when {
+                    environment(name: "DEPLOYMENT_STATE", value: "both")
+                }
+                steps {
+                    echo "Both"
+                }
+        }
 
-    stage("One deployed") {
-            when {
-                environment(name: "DEPLOYMENT_STATE", value: "one")
-            }
-            steps {
-                echo "One"
-            }
-    }
+        stage("One deployed") {
+                when {
+                    environment(name: "DEPLOYMENT_STATE", value: "one")
+                }
+                steps {
+                    echo "One"
+                }
+        }
 
-    stage("None deployed") {
-            when {
-                environment(name: "DEPLOYMENT_STATE", value: "neither")
-            }
-            steps {
-                echo "Neither"
-            }
+        stage("None deployed") {
+                when {
+                    environment(name: "DEPLOYMENT_STATE", value: "neither")
+                }
+                steps {
+                    echo "Neither"
+                }
+        }
     }
 }
