@@ -1,0 +1,114 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = credentials("AWS_REGION")
+        AWS_ID = credentials("AWS_ID")
+        COMMIT_HASH = "latest"
+        BANK_REPLICAS = 1
+        TRANS_REPLICAS = 1
+        UNDER_REPLICAS = 1
+        USER_REPLICAS  = 1
+        GATEWAY_REPLICAS = 1
+        CONTROLLER_PORT = 8081
+        CANARY_WEIGHT = "20"
+        HOST = "aline.localdev.me"
+    }
+
+    stages {
+        stage("Get current state of deployment") {
+            steps {
+                script {
+                    def output = sh(returnStdout: true, script: "kubectl get service -n afs-ec")
+                    if(output.contains("green") && output.contains("blue")){
+                        env.DEPLOYMENT_STATE = "both"
+                        def ingress_output = sh(returnStdout: true, script: "kubectl get ingress main-ingress -o yaml -n afs-ec")
+                        if(ingress_output.contains("blue")){
+                            env.DEPLOYMENT_COLOR = "blue"
+                            env.MAIN_COLOR = "green"
+                            env.CANARY_COLOR = "blue"
+                        }else if(ingress_output.contains("green")){
+                            env.DEPLOYMENT_COLOR = "green"
+                            env.MAIN_COLOR = "blue"
+                            env.CANARY_COLOR = "green"
+                        }else{
+                            echo "Error: Services were running but no ingress was created"
+                            return
+                        }
+                    }else if(output.contains("green")){
+                        env.DEPLOYMENT_STATE = "one"
+                        env.DEPLOYMENT_COLOR = "blue"
+                        env.CANARY_COLOR = "blue"
+                    }else if(output.contains("blue")){
+                        env.DEPLOYMENT_STATE = "one"
+                        env.DEPLOYMENT_COLOR = "green"
+                        env.CANARY_COLOR = "green"
+                    }else{
+                        env.DEPLOYMENT_STATE = "neither"
+                        env.DEPLOYMENT_COLOR = "blue"
+                        env.MAIN_COLOR = "blue"
+                    }
+                }
+            }
+        }
+
+        stage("Both deployed") {
+                when {
+                    environment(name: "DEPLOYMENT_STATE", value: "both")
+                }
+                steps {
+                    sh "kubectl delete deploy aline-bank-deployment-${DEPLOYMENT_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-trans-deployment-${DEPLOYMENT_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-under-deployment-${DEPLOYMENT_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-user-deployment-${DEPLOYMENT_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-gateway-deployment-${DEPLOYMENT_COLOR} -n afs-ec"
+                    sh "kubectl delete service aline-backend-service-${DEPLOYMENT_COLOR} -n afs-ec"
+                    sh "kubectl delete service aline-gateway-service-${DEPLOYMENT_COLOR} -n afs-ec"
+                    dir('Kubernetes/Canary'){
+                        sh "envsubst < aline-bank.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-trans.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-under.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-user.yaml | kubectl apply -f -"
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-gateway.yaml | kubectl apply -f -"
+                        sh "envsubst < main-ingress.yaml | kubectl apply -f -"
+                        sh "envsubst < canary-ingress.yaml | kubectl apply -f -"
+                    }
+                }
+        }
+
+        stage("One deployed") {
+                when {
+                    environment(name: "DEPLOYMENT_STATE", value: "one")
+                }
+                steps {
+                    dir('Kubernetes/Canary'){
+                        sh "envsubst < aline-bank.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-trans.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-under.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-user.yaml | kubectl apply -f -"
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-gateway.yaml | kubectl apply -f -"
+                        sh "envsubst < canary-ingress.yaml | kubectl apply -f -"
+                    }
+                }
+        }
+
+        stage("None deployed") {
+                when {
+                    environment(name: "DEPLOYMENT_STATE", value: "neither")
+                }
+                steps {
+                    dir('Kubernetes/Canary'){
+                        sh "envsubst < aline-bank.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-trans.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-under.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-user.yaml | kubectl apply -f -"
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-gateway.yaml | kubectl apply -f -"
+                        sh "envsubst < main-ingress.yaml | kubectl apply -f -"
+                    }
+                }
+        }
+    }
+}
