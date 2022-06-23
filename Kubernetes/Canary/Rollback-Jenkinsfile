@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    stages {
+        stage("Get current state of deployment") {
+            steps {
+                script {
+                    def output = sh(returnStdout: true, script: "kubectl get service -n afs-ec")
+                    if(output.contains("green") && output.contains("blue")){
+                        env.DEPLOYMENT_STATE = "both"
+                        def ingress_output = sh(returnStdout: true, script: "kubectl get ingress main-ingress -o yaml -n afs-ec")
+                        if(ingress_output.contains("blue")){
+                            env.DELETE_COLOR = "green"
+                        }else if(ingress_output.contains("green")){
+                            env.DELETE_COLOR = "blue"
+                        }else{
+                            echo "Error: Services were running but no ingress was created"
+                            return
+                        }
+                    }else if(output.contains("green")){
+                        env.DELETE_COLOR = "green"
+                    }else if(output.contains("blue")){
+                        env.DELETE_COLOR = "blue"
+                    }else{
+                        echo "No deployments running so therefore no need to rollback"
+                        return
+                    }
+                }
+            }
+        }
+
+        stage("Delete unused canary ingress") {
+            when {
+                environment(name: "DEPLOYMENT_STATE", value: "both")
+            }
+            steps{
+                dir('Kubernetes/BlueGreen'){
+                    sh "kubectl delete ingress canary-ingress -n afs-ec"
+                }
+            }
+        }
+
+        stage("Delete unused main ingress") {
+            when {
+                environment(name: "DEPLOYMENT_STATE", value: "one")
+            }
+            steps{
+                sh "kubectl delete ingress main-ingress -n afs-ec"
+            }
+        }
+
+        stage("Delete infrastructure from rolled-back deployment"){
+            steps{
+                dir('Kubernetes/BlueGreen'){
+                    sh "kubectl delete deploy aline-bank-deployment-${DELETE_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-trans-deployment-${DELETE_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-under-deployment-${DELETE_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-user-deployment-${DELETE_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-gateway-deployment-${DELETE_COLOR} -n afs-ec"
+                    sh "kubectl delete service aline-backend-service-${DELETE_COLOR} -n afs-ec"
+                    sh "kubectl delete service aline-gateway-service-${DELETE_COLOR} -n afs-ec"
+                }  
+            }
+        }
+    }
+}
