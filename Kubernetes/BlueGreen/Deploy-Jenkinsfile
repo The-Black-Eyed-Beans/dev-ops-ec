@@ -4,7 +4,6 @@ pipeline {
     environment {
         AWS_REGION = credentials("AWS_REGION")
         AWS_ID = credentials("AWS_ID")
-        DEPLOYMENT_COLOR = "blue"
         COMMIT_HASH = "latest"
     }
 
@@ -12,6 +11,7 @@ pipeline {
         stage("Test") {
             steps {
                 dir('Kubernetes/BlueGreen'){
+                    sh "export DEPLOYMENT_COLOR=green"
                     sh "envsubst < aline-bank.yaml | kubectl apply -f -"
                 }
             }
