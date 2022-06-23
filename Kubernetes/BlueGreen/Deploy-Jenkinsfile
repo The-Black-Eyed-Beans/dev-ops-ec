@@ -1,6 +1,13 @@
 pipeline {
     agent any
 
+    environment {
+        AWS_REGION = credentials("AWS_REGION")
+        AWS_ID = credentials("AWS_ID")
+        DEPLOYMENT_COLOR = "blue"
+        COMMIT_HASH = "latest"
+    }
+
     stages {
         stage("Test") {
             steps {
