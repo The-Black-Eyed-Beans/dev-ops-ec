@@ -71,10 +71,12 @@ pipeline {
                     environment(name: "DEPLOYMENT_STATE", value: "neither")
                 }
                 steps {
-                    sh "envsubst < aline-bank.yaml | kubectl apply -f -"
-                    sh "envsubst < backend-service.yaml | kubectl apply -f -"
-                    sh "envsubst < aline-gateway.yaml | kubectl apply -f -"
-                    sh "envsubst < main-ingress.yaml | kubectl apply -f -"
+                    dir('Kubernetes/BlueGreen'){
+                        sh "envsubst < aline-bank.yaml | kubectl apply -f -"
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-gateway.yaml | kubectl apply -f -"
+                        sh "envsubst < main-ingress.yaml | kubectl apply -f -"
+                    }
                 }
         }
     }
