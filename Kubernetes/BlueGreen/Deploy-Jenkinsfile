@@ -20,12 +20,12 @@ pipeline {
                         def ingress_output = sh(returnStdout: true, script: "kubectl get ingress main-ingress -o yaml -n afs-ec")
                         if(ingress_output.contains("blue")){
                             env.DEPLOYMENT_COLOR = "green"
-                            env.NEW_COLOR = "green"
-                            env.OLD_COLOR = "blue"
+                            env.MAIN_COLOR = "green"
+                            env.PREV_COLOR = "blue"
                         }else if(ingress_output.contains("green")){
                             env.DEPLOYMENT_COLOR = "blue"
-                            env.NEW_COLOR = "blue"
-                            env.OLD_COLOR = "green"
+                            env.MAIN_COLOR = "blue"
+                            env.PREV_COLOR = "green"
                         }else{
                             echo "Error: Services were running but no ingress was created"
                             return
@@ -33,23 +33,19 @@ pipeline {
                     }else if(output.contains("green")){
                         env.DEPLOYMENT_STATE = "one"
                         env.DEPLOYMENT_COLOR = "blue"
-                        env.NEW_COLOR = "blue"
-                        env.OLD_COLOR = "green"
+                        env.MAIN_COLOR = "blue"
+                        env.PREV_COLOR = "green"
                     }else if(output.contains("blue")){
                         env.DEPLOYMENT_STATE = "one"
                         env.DEPLOYMENT_COLOR = "green"
-                        env.NEW_COLOR = "green"
-                        env.OLD_COLOR = "blue"
+                        env.MAIN_COLOR = "green"
+                        env.PREV_COLOR = "blue"
                     }else{
                         env.DEPLOYMENT_STATE = "neither"
                         env.DEPLOYMENT_COLOR = "blue"
-                        env.OLD_COLOR = "blue"
+                        env.MAIN_COLOR = "blue"
                     }
                 }
-                // dir('Kubernetes/BlueGreen'){
-                //     sh "envsubst < aline-bank.yaml | kubectl apply -f -"
-                // }
-                // env.DEPLOYMENT_COLOR = "green" inside script
             }
         }
 
@@ -71,7 +67,7 @@ pipeline {
                         sh "envsubst < aline-bank.yaml | kubectl apply -f -"
                         sh "envsubst < backend-service.yaml | kubectl apply -f -"
                         sh "envsubst < aline-gateway.yaml | kubectl apply -f -"
-                        sh "envsubst < canary-ingress.yaml | kubectl apply -f -"
+                        sh "envsubst < main-ingress.yaml | kubectl apply -f -"
                     }
                 }
         }

@@ -14,7 +14,7 @@ spec:
       paths:
       - backend:
           service:
-            name: aline-gateway-service-${NEW_COLOR}
+            name: aline-gateway-service-${CANARY_COLOR}
             port:
               number: 8081
         path: /
