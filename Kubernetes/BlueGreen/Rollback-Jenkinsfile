@@ -48,7 +48,7 @@ pipeline {
 
         stage("Delete unused ingress") {
             when {
-                environment(name: "DEPLOYMENT_STATE", value: "both")
+                environment(name: "DEPLOYMENT_STATE", value: "one")
             }
             steps{
                 sh "kubectl delete ingress main-ingress -n afs-ec"
