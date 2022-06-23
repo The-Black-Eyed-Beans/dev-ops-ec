@@ -103,8 +103,8 @@ pipeline {
             steps{
                 script {
                     sh 'sleep 20'
-                    def curl_output = sh(returnStdout: true, script: "curl -v ${HOST}:${CONTROLLER_PORT}/api/banks")
-                    if(curl_output.contains("OK")){
+                    def curl_output = sh(returnStdout: true, script: "curl ${HOST}:${CONTROLLER_PORT}/api/banks")
+                    if(curl_output.contains("routingNumber")){
                         echo "test passed"
                     }else{
                         echo "test failed"
