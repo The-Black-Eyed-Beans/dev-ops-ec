@@ -18,8 +18,10 @@ pipeline {
                             return
                         }
                     }else if(output.contains("green")){
+                        env.DEPLOYMENT_STATE = "one"
                         env.DELETE_COLOR = "green"
                     }else if(output.contains("blue")){
+                        env.DEPLOYMENT_STATE = "one"
                         env.DELETE_COLOR = "blue"
                     }else{
                         echo "No deployments running so therefore no need to rollback"
