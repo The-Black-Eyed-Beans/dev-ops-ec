@@ -6,7 +6,11 @@ pipeline {
         AWS_ID = credentials("AWS_ID")
         COMMIT_HASH = "latest"
         BANK_REPLICAS = 1
+        TRANS_REPLICAS = 1
+        UNDER_REPLICAS = 1
+        USER_REPLICAS  = 1
         GATEWAY_REPLICAS = 1
+        CONTROLLER_PORT = 8081
         HOST = "aline.localdev.me"
     }
 
@@ -93,6 +97,19 @@ pipeline {
                         sh "envsubst < main-ingress.yaml | kubectl apply -f -"
                     }
                 }
+        }
+
+        stage("Test deployment"){
+            steps{
+                script {
+                    def curl_output = sh(returnStdout: true, script: "curl -v ${HOST}:${CONTROLLER_PORT}/api/banks")
+                    if curl_output.contains("200 OK"){
+                        echo "test passed"
+                    }else{
+                        echo "test failed"
+                    }
+                }
+            }
         }
     }
 }
