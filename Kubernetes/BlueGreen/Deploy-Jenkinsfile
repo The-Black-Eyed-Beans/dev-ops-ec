@@ -105,7 +105,7 @@ pipeline {
                     sh 'sleep 20'
                     def curl_output = sh(returnStdout: true, script: "curl ${HOST}:${CONTROLLER_PORT}/api/banks")
                     if(curl_output.contains("routingNumber")){
-                        echo "test passed"
+                        build job: 'Blue-Green-Rollback'
                     }else{
                         echo "test failed"
                     }
