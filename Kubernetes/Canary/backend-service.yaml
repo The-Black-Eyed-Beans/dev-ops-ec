@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aline-backend-service-${DEPLOYMENT_COLOR}
+  namespace: afs-ec
+spec:
+  selector:
+    role: microservice
+    color: ${DEPLOYMENT_COLOR}
+  ports:
+    - name: user-backend
+      port: 8070
+      targetPort: user-${DEPLOYMENT_COLOR}
+    - name: under-backend
+      port: 8071
+      targetPort: under-${DEPLOYMENT_COLOR}
+    - name: trans-backend
+      port: 8073
+      targetPort: trans-${DEPLOYMENT_COLOR}
+    - name: bank-backend
+      port: 8083
+      targetPort: bank-${DEPLOYMENT_COLOR}
