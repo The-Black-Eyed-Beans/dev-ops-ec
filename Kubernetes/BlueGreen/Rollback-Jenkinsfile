@@ -59,6 +59,9 @@ pipeline {
             steps{
                 dir('Kubernetes/BlueGreen'){
                     sh "kubectl delete deploy aline-bank-deployment-${PREV_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-trans-deployment-${PREV_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-under-deployment-${PREV_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-user-deployment-${PREV_COLOR} -n afs-ec"
                     sh "kubectl delete deploy aline-gateway-deployment-${PREV_COLOR} -n afs-ec"
                     sh "kubectl delete service aline-backend-service-${PREV_COLOR} -n afs-ec"
                     sh "kubectl delete service aline-gateway-service-${PREV_COLOR} -n afs-ec"
