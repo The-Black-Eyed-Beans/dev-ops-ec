@@ -11,7 +11,7 @@ pipeline {
         USER_REPLICAS  = 1
         GATEWAY_REPLICAS = 1
         CONTROLLER_PORT = 8081
-        CANARY_WEIGHT = "20"
+        CANARY_WEIGHT = "\"20\""
         HOST = "aline.localdev.me"
     }
 
