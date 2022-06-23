@@ -54,7 +54,16 @@ pipeline {
                     environment(name: "DEPLOYMENT_STATE", value: "both")
                 }
                 steps {
-                    echo "Both"
+                    sh "kubectl delete deploy aline-bank-deployment-${MAIN_COLOR} -n afs-ec"
+                    sh "kubectl delete deploy aline-gateway-deployment-${MAIN_COLOR} -n afs-ec"
+                    sh "kubectl delete service aline-backend-service-${MAIN_COLOR} -n afs-ec"
+                    sh "kubectl delete service aline-gateway-service-${MAIN_COLOR} -n afs-ec"
+                    dir('Kubernetes/BlueGreen'){
+                        sh "envsubst < aline-bank.yaml | kubectl apply -f -"
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-gateway.yaml | kubectl apply -f -"
+                        sh "envsubst < main-ingress.yaml | kubectl apply -f -"
+                    }
                 }
         }
 
