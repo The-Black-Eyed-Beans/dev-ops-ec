@@ -11,10 +11,11 @@ pipeline {
         stage("Test") {
             steps {
                 script{
-                    env.DEVELOPMENT_COLOR = "green"
-                }
-                dir('Kubernetes/BlueGreen'){
-                    sh "envsubst < aline-bank.yaml | kubectl apply -f -"
+                    withEnv(["DEVELOPMENT_COLOR=green"]){
+                        dir('Kubernetes/BlueGreen'){
+                            sh "envsubst < aline-bank.yaml | kubectl apply -f -"
+                        }
+                    }
                 }
             }
         }
