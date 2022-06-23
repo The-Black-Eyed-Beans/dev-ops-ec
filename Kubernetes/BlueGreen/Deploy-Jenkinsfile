@@ -14,19 +14,47 @@ pipeline {
                 script {
                     def output = sh(returnStdout: true, script: "kubectl get service -n afs-ec")
                     if(output.contains("green") && output.contains("blue")){
-                        echo "Both deployed"
+                        env.DEPLOYMENT_STATE = "both"
                     }else if(output.contains("green")){
-                        echo "Green deployed"
+                        env.DEPLOYMENT_STATE = "one"
                     }else if(output.contains("blue")){
-                        echo "Blue deployed"
+                        env.DEPLOYMENT_STATE = "one"
                     }else{
-                        echo "Neither deployed"
+                        env.DEPLOYMENT_STATE = "neither"
                     }
                 }
                 // dir('Kubernetes/BlueGreen'){
                 //     sh "envsubst < aline-bank.yaml | kubectl apply -f -"
                 // }
+                // env.DEPLOYMENT_COLOR = "green" inside script
             }
         }
+    }
+
+    stage("Both deployed") {
+            when {
+                environment(name: "DEPLOYMENT_STATE", value: "both")
+            }
+            steps {
+                echo "Both"
+            }
+    }
+
+    stage("One deployed") {
+            when {
+                environment(name: "DEPLOYMENT_STATE", value: "one")
+            }
+            steps {
+                echo "One"
+            }
+    }
+
+    stage("None deployed") {
+            when {
+                environment(name: "DEPLOYMENT_STATE", value: "neither")
+            }
+            steps {
+                echo "Neither"
+            }
     }
 }
