@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aline-gateway-deployment-${DEPLOYMENT_COLOR}
+  namespace: afs-ec
+  labels:
+    app: aline-gateway-${DEPLOYMENT_COLOR}
+spec:
+  replicas: ${GATEWAY_REPLICAS}
+  selector:
+    matchLabels:
+      app: aline-gateway-${DEPLOYMENT_COLOR}
+  template:
+    metadata:
+      labels:
+        app: aline-gateway-${DEPLOYMENT_COLOR}
+    spec:
+      containers:
+      - name: aline-gateway-container
+        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/gateway-ec:${COMMIT_HASH}
+        ports:
+        - containerPort: 8080
+        env:
+          - name: APP_PORT
+            value: "8080"
+          - name: APP_SERVICE_HOST
+            value: aline-backend-service-${DEPLOYMENT_COLOR}
+      imagePullSecrets:
+        - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aline-gateway-service-${DEPLOYMENT_COLOR}
+  namespace: afs-ec
+spec:
+  selector:
+    app: aline-gateway-${DEPLOYMENT_COLOR}
+  ports:
+    - port: 8081
+      targetPort: 8080

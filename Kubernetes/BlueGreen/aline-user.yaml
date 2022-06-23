@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aline-user-deployment-${DEPLOYMENT_COLOR}
+  namespace: afs-ec
+  labels:
+    app: aline-user-${DEPLOYMENT_COLOR}
+spec:
+  replicas: ${USER_REPLICAS}
+  selector:
+    matchLabels:
+      app: aline-user-${DEPLOYMENT_COLOR}
+  template:
+    metadata:
+      labels:
+        app: aline-user-${DEPLOYMENT_COLOR}
+        role: microservice
+        color: ${DEPLOYMENT_COLOR}
+    spec:
+      containers:
+      - name: aline-user-ms
+        image: ${AWS_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/user-microservice-ec:${COMMIT_HASH}
+        ports:
+        - name: user-${DEPLOYMENT_COLOR}
+          containerPort: 8070
+        envFrom:
+          - configMapRef:
+              name: service-config
+          - secretRef:
+              name: service-secret
+        env:
+          - name: APP_PORT
+            value: "8070"
+      imagePullSecrets:
+        - name: regcred
