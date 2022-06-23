@@ -67,7 +67,12 @@ pipeline {
                     environment(name: "DEPLOYMENT_STATE", value: "one")
                 }
                 steps {
-                    echo "One"
+                    dir('Kubernetes/BlueGreen'){
+                        sh "envsubst < aline-bank.yaml | kubectl apply -f -"
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                        sh "envsubst < aline-gateway.yaml | kubectl apply -f -"
+                        sh "envsubst < canary-ingress.yaml | kubectl apply -f -"
+                    }
                 }
         }
 
