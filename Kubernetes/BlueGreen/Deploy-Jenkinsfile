@@ -5,17 +5,27 @@ pipeline {
         AWS_REGION = credentials("AWS_REGION")
         AWS_ID = credentials("AWS_ID")
         COMMIT_HASH = "latest"
+        BANK_REPLICAS = 1
     }
 
     stages {
         stage("Test") {
             steps {
                 script {
-                    env.DEPLOYMENT_COLOR = "green"
+                    def output = sh(returnStdout: true, script: "kubectl get service -n afs-ec")
+                    if(output.contains("green") && output.contains("blue")){
+                        echo "Both deployed"
+                    }else if(output.contains("green")){
+                        echo "Green deployed"
+                    }else if(output.contains("blue")){
+                        echo "Blue deployed"
+                    }else{
+                        echo "Neither deployed"
+                    }
                 }
-                dir('Kubernetes/BlueGreen'){
-                    sh "envsubst < aline-bank.yaml | kubectl apply -f -"
-                }
+                // dir('Kubernetes/BlueGreen'){
+                //     sh "envsubst < aline-bank.yaml | kubectl apply -f -"
+                // }
             }
         }
     }
