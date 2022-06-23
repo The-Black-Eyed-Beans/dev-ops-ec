@@ -10,8 +10,10 @@ pipeline {
     stages {
         stage("Test") {
             steps {
+                script{
+                    env.DEVELOPMENT_COLOR = "green"
+                }
                 dir('Kubernetes/BlueGreen'){
-                    sh "export DEPLOYMENT_COLOR='green'"
                     sh "envsubst < aline-bank.yaml | kubectl apply -f -"
                 }
             }
