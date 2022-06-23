@@ -19,9 +19,11 @@ pipeline {
                         env.DEPLOYMENT_STATE = "both"
                         def ingress_output = sh(returnStdout: true, script: "kubectl get ingress main-ingress -o yaml -n afs-ec")
                         if(ingress_output.contains("blue")){
+                            env.DEPLOYMENT_COLOR = "green"
                             env.NEW_COLOR = "green"
                             env.OLD_COLOR = "blue"
                         }else if(ingress_output.contains("green")){
+                            env.DEPLOYMENT_COLOR = "blue"
                             env.NEW_COLOR = "blue"
                             env.OLD_COLOR = "green"
                         }else{
@@ -30,14 +32,17 @@ pipeline {
                         }
                     }else if(output.contains("green")){
                         env.DEPLOYMENT_STATE = "one"
+                        env.DEPLOYMENT_COLOR = "blue"
                         env.NEW_COLOR = "blue"
                         env.OLD_COLOR = "green"
                     }else if(output.contains("blue")){
                         env.DEPLOYMENT_STATE = "one"
+                        env.DEPLOYMENT_COLOR = "green"
                         env.NEW_COLOR = "green"
                         env.OLD_COLOR = "blue"
                     }else{
                         env.DEPLOYMENT_STATE = "neither"
+                        env.DEPLOYMENT_COLOR = "blue"
                         env.OLD_COLOR = "blue"
                     }
                 }
