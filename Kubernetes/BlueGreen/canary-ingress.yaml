@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: canary-ingress
+  namespace: afs-ec
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true"         # Enable canary.
+    nginx.ingress.kubernetes.io/canary-weight: "100"    # Forward 20% of the traffic to the canary ingress.
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ${HOST}
+    http:
+      paths:
+      - backend:
+          service:
+            name: aline-gateway-service-${NEW_COLOR}
+            port:
+              number: 8081
+        path: /
+        pathType: Prefix
