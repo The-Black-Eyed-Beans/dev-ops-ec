@@ -13,8 +13,8 @@ pipeline {
         stage("Get current state of deployment") {
             steps {
                 script {
-                    def output = sh(returnStdout: true, script: "kubectl get deploy -n afs-ec | grep bank")
-                    if(output.contains("green") && output.contains("blue")){
+                    def output = sh(returnStdout: true, script: "kubectl get deploy -n afs-ec")
+                    if(output.contains("bank-deployment-green") && output.contains("bank-deployment-blue")){
                         def bank_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: bank'")
                         if(bank_output.contains("blue")){
                             env.DEPLOYMENT_COLOR = "green"
@@ -26,10 +26,10 @@ pipeline {
                             echo "Error: Backend service not currently running"
                             return
                         }
-                    }else if(output.contains("green")){
+                    }else if(output.contains("bank-deployment-green")){
                         env.DEPLOYMENT_COLOR = "blue"
                         env.BANK_DEPLOYMENT_COLOR = "blue"
-                    }else if(output.contains("blue")){
+                    }else if(output.contains("bank-deployment-blue")){
                         env.DEPLOYMENT_COLOR = "green"
                         env.BANK_DEPLOYMENT_COLOR = "green"
                     }else{
