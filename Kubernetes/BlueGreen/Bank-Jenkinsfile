@@ -74,11 +74,8 @@ pipeline {
             steps{
                 script {
                     sh 'sleep 10'
-                    final def (String response, int code) =
-                            sh(script: "curl -s -w '\\n%{response_code}' localhost:30020/api/banks", returnStdout: true)
-                                .trim()
-                                .tokenize("\n")
-                    echo 'Response code: $code'
+                    final def (String response, int code) = sh(script: "curl -s -w '\\n%{response_code}' localhost:30020/api/banks", returnStdout: true).trim().tokenize("\n")
+                    echo code
                     if(code == 200){
                         echo: "Test passed"
                     }else{
