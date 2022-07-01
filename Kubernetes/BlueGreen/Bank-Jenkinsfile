@@ -75,7 +75,7 @@ pipeline {
                 script {
                     sh 'sleep 10'
                     final def (String response, int code) =
-                            sh(script: "curl -s -w '\n%{response_code}' localhost:30020/api/banks", returnStdout: true)
+                            sh(script: "curl -w '\\n%{response_code}' localhost:30020/api/banks", returnStdout: true)
                                 .trim()
                                 .tokenize("\n")
 
