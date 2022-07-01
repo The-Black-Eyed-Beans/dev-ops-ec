@@ -74,8 +74,12 @@ pipeline {
             steps{
                 script {
                     sh 'sleep 10'
-                    def curl_output = sh(returnStdout: true, script: "curl -v http://localhost:30020/api/banks | grep '< HTTP'")
-                    if(curl_output.contains("200 OK")){
+                    final def (String response, int code) =
+                            sh(script: "curl -s -w '\\n%{response_code}' localhost:30020/api/banks", returnStdout: true)
+                                .trim()
+                                .tokenize("\n")
+
+                    if(code == 200){
                         echo: "Test passed"
                     }else{
                         echo: "Test failed"
