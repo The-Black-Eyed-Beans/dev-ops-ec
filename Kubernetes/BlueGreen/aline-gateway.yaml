@@ -24,18 +24,20 @@ spec:
           - name: APP_PORT
             value: "8080"
           - name: APP_SERVICE_HOST
-            value: aline-backend-service-${DEPLOYMENT_COLOR}
+            value: aline-backend-service
       imagePullSecrets:
         - name: regcred
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: aline-gateway-service-${DEPLOYMENT_COLOR}
+  name: aline-gateway-service
   namespace: afs-ec
 spec:
+  type: NodePort
   selector:
     app: aline-gateway-${DEPLOYMENT_COLOR}
   ports:
     - port: 8081
       targetPort: 8080
+      nodePort: 30020
