@@ -69,5 +69,19 @@ pipeline {
                 }
             }
         }
+
+        stage("Test deployment"){
+            steps{
+                script {
+                    sh 'sleep 30'
+                    def curl_output = sh(returnStdout: true, script: "curl -v http://localhost:30020/api/banks 2>&1")
+                    if(curl_output.contains("routingNumber")){
+                        echo: "Test passed"
+                    }else{
+                        echo: "Test failed"
+                    }
+                }
+            }
+        }
     }
 }
