@@ -40,27 +40,6 @@ pipeline {
                         env.DEPLOYMENT_COLOR = "blue"
                         env.BANK_DEPLOYMENT_COLOR = "blue"
                     }
-
-                    def trans_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: trans'")
-                    if(trans_output.contains("green")){
-                        env.TRANS_DEPLOYMENT_COLOR = "green"
-                    }else{
-                        env.TRANS_DEPLOYMENT_COLOR = "blue"
-                    }
-
-                    def under_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: under'")
-                    if(under_output.contains("green")){
-                        env.UNDER_DEPLOYMENT_COLOR = "green"
-                    }else{
-                        env.UNDER_DEPLOYMENT_COLOR = "blue"
-                    }
-
-                    def user_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: user'")
-                    if(user_output.contains("green")){
-                        env.USER_DEPLOYMENT_COLOR = "green"
-                    }else{
-                        env.USER_DEPLOYMENT_COLOR = "blue"
-                    }
                 }
             }
         }
