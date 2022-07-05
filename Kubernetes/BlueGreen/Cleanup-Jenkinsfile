@@ -1,0 +1,33 @@
+pipeline {
+    agent any
+    
+    parameters{
+        string(name: 'MICROSERVICE', defaultValue: 'bank', description: 'Microservice you are cleaning up')
+    }
+
+    stages{
+        stage("Get current state of deployment"){
+            steps{
+                script{
+                    def deploy_output = sh(returnStdout: true, script: "kubectl get deploy -n afs-ec")
+                    if(deploy_output.contains("${MICROSERVICE}-deployment-blue") && deploy_output.contains("${MICROSERVICE}-deployment-green")){
+                        def svc_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: ${MICROSERVICE}'")
+                        if(svc_output.contains("green")){
+                            env.COLOR = "blue"
+                        }else if(svc_output.contains("blue")){
+                            env.COLOR = "green"
+                        }else{
+                            error "Error parsing service"
+                        }
+                    }else{
+                        error "Nothing to clean up"
+                    }
+                }
+            }
+        }
+
+        stage("Delete old deployment"){
+            sh "kubectl delete deploy aline-${MICROSERVICE}-deployment-${COLOR}"
+        }
+    }
+}
