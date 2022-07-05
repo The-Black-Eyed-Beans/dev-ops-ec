@@ -64,13 +64,29 @@ pipeline {
                     }
 
                     if(env.MICROSERVICE == "bank"){
-                        env.BANK_DEPLOYMENT_COLOR = env.COLOR
+                        if(env.COLOR == "green"){
+                            env.BANK_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.BANK_DEPLOYMENT_COLOR = "green"
+                        }
                     }else if(env.MICROSERVICE == "trans"){
-                        env.TRANS_DEPLOYMENT_COLOR = env.COLOR
+                        if(env.COLOR == "green"){
+                            env.TRANS_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.TRANS_DEPLOYMENT_COLOR = "green"
+                        }
                     }else if(env.MICROSERVICE == "under"){
-                        env.UNDER_DEPLOYMENT_COLOR = env.COLOR
+                        if(env.COLOR == "green"){
+                            env.UNDER_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.UNDER_DEPLOYMENT_COLOR = "green"
+                        }
                     }else{
-                        env.USER_DEPLOYMENT_COLOR = env.COLOR
+                        if(env.COLOR == "green"){
+                            env.USER_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.USER_DEPLOYMENT_COLOR = "green"
+                        }
                     }
                     dir('Kubernetes/Canary'){
                         sh "envsubst < backend-service.yaml | kubectl apply -f -"
