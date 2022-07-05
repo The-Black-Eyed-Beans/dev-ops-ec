@@ -62,7 +62,7 @@ pipeline {
         stage("Create bank deployment and update service") {
             steps {
                 script{
-                    env.BANK_DEPLOYMENT_COLOR = "blue"
+                    env.DEPLOYMENT_COLOR = "blue"
                     dir('Kubernetes/Canary'){
                         sh "envsubst < aline-bank.yaml | kubectl apply -f -"
                     }
