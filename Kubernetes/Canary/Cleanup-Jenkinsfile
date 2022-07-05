@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     parameters{
-        string(name: 'MICROSERVICE', defaultValue: 'bank', description: 'Microservice you are rolling back')
+        string(name: 'MICROSERVICE', defaultValue: 'bank', description: 'Microservice you are cleaing up')
     }
 
     stages{
@@ -72,8 +72,9 @@ pipeline {
                     }else{
                         env.USER_DEPLOYMENT_COLOR = env.COLOR
                     }
-
-                    sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                    dir('Kubernetes/Canary'){
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                    }
                 }
             }        
         }
