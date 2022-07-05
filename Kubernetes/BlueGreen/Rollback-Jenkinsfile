@@ -96,8 +96,9 @@ pipeline {
                             env.USER_DEPLOYMENT_COLOR = "green"
                         }
                     }
-
-                    sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                    dir('Kubernetes/BlueGreen'){
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                    }
                 }
             }
         }
