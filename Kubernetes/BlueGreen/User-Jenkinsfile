@@ -82,7 +82,9 @@ pipeline {
                     if(code == 403){
                         echo "Test passed"
                     }else{
-                        echo "Test failed"
+                        build job: 'Blue-Green-Rollback', parameters: [
+                        string(name: 'MICROSERVICE', value: "user")
+                        ]
                     }
                 }
             }
