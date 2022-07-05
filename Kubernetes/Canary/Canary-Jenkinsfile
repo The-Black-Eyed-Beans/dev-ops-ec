@@ -9,7 +9,7 @@ pipeline {
         stage("Update Canary Ingress") {
             steps{
                 script{
-                    dir('Kubernetes/BlueGreen'){
+                    dir('Kubernetes/Canary'){
                         sh "envsubst < canary-ingress.yaml | kubectl apply -f -"
                     }
                 }
