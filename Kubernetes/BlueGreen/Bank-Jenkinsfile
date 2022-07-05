@@ -1,12 +1,17 @@
-//curl -v "http://localhost:30020/api/banks" 2>&1 | grep "201 OK"
 pipeline {
     agent any
+    
+    parameters{
+        string(name: 'SLEEP_AMOUNT', defaultValue: '10', description: 'How long to sleep before testing deployment')
+    }
 
     environment {
         AWS_REGION = credentials("AWS_REGION")
         AWS_ID = credentials("AWS_ID")
         COMMIT_HASH = "latest"
         BANK_REPLICAS = 1
+        HOST = "localhost"
+        HOST_PORT = "30020"
     }
 
     stages {
@@ -73,8 +78,8 @@ pipeline {
         stage("Test deployment"){
             steps{
                 script {
-                    sh 'sleep 10'
-                    final def (String response, int code) = sh(script: "curl -s -w '\\n%{response_code}' localhost:30020/api/banks", returnStdout: true).trim().tokenize("\n")
+                    sh "sleep ${SLEEP_AMOUNT}"
+                    final def (String response, int code) = sh(script: "curl -s -w '\\n%{response_code}' ${HOST}:${HOST_PORT}/api/banks", returnStdout: true).trim().tokenize("\n")
                     if(code == 200){
                         echo "Test passed"
                     }else{
