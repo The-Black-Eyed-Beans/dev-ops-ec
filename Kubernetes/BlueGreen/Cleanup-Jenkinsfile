@@ -27,7 +27,9 @@ pipeline {
         }
 
         stage("Delete old deployment"){
-            sh "kubectl delete deploy aline-${MICROSERVICE}-deployment-${COLOR}"
+            steps{
+                sh "kubectl delete deploy aline-${MICROSERVICE}-deployment-${COLOR}"
+            }
         }
     }
 }
