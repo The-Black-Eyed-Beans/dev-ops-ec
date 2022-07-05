@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: aline-backend-service-main
+  name: aline-backend-service-canary
   namespace: afs-ec
 spec:
   selector:

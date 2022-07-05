@@ -5,7 +5,7 @@ metadata:
   namespace: afs-ec
   annotations:
     nginx.ingress.kubernetes.io/canary: "true"
-    nginx.ingress.kubernetes.io/canary-weight: ${CANARY_WEIGHT}
+    nginx.ingress.kubernetes.io/canary-weight: "${CANARY_WEIGHT}"
 spec:
   ingressClassName: nginx
   rules:
@@ -14,7 +14,7 @@ spec:
       paths:
       - backend:
           service:
-            name: aline-gateway-service-${CANARY_COLOR}
+            name: aline-gateway-service-canary
             port:
               number: 8081
         path: /
