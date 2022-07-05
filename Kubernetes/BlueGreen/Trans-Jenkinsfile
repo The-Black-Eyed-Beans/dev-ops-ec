@@ -79,8 +79,8 @@ pipeline {
             steps{
                 script {
                     sh "sleep ${SLEEP_AMOUNT}"
-                    final def (String response, int code) = sh(script: "curl -s -w '\\n%{response_code}' ${HOST}:${HOST_PORT}/api/banks", returnStdout: true).trim().tokenize("\n")
-                    if(code == 200){
+                    final def (String response, int code) = sh(script: "curl -s -w '\\n%{response_code}' ${HOST}:${HOST_PORT}/api/accounts/2/transactions", returnStdout: true).trim().tokenize("\n")
+                    if(code == 403){
                         echo "Test passed"
                     }else{
                         echo "Test failed"
