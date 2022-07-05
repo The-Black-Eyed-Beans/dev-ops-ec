@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+    
+    parameters{
+        string(name: 'MICROSERVICE', defaultValue: 'bank', description: 'Microservice you are rolling back')
+    }
+
+    stages{
+        stage("Get current state of deployment"){
+            steps{
+                script{
+                    def deploy_output = sh(returnStdout: true, script: "kubectl get deploy -n afs-ec")
+                    if(deploy_output.contains("${MICROSERVICE}-deployment-blue") && deploy_output.contains("${MICROSERVICE}-deployment-green")){
+                        def svc_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-canary -o yaml -n afs-ec | grep 'targetPort: ${MICROSERVICE}'")
+                        if(svc_output.contains("green")){
+                            env.COLOR = "blue"
+                        }else if(svc_output.contains("blue")){
+                            env.COLOR = "green"
+                        }else{
+                            error "Error parsing service"
+                        }
+                    }else{
+                        error "Nothing to clean up"
+                    }
+                }
+            }
+        }
+
+        stage("Delete old deployment"){
+            steps{
+                sh "kubectl delete deploy aline-${MICROSERVICE}-deployment-${COLOR} -n afs-ec"
+            }
+        }
+
+        stage("Update main service"){
+            steps{
+                script{
+                    def bank_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: bank'")
+                    if(bank_output.contains("green")){
+                        env.BANK_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.BANK_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def trans_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: trans'")
+                    if(trans_output.contains("green")){
+                        env.TRANS_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.TRANS_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def under_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: under'")
+                    if(under_output.contains("green")){
+                        env.UNDER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.UNDER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def user_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: user'")
+                    if(user_output.contains("green")){
+                        env.USER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.USER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    if(env.MICROSERVICE == "bank"){
+                        env.BANK_DEPLOYMENT_COLOR = env.COLOR
+                    }else if(env.MICROSERVICE == "trans"){
+                        env.TRANS_DEPLOYMENT_COLOR = env.COLOR
+                    }else if(env.MICROSERVICE == "under"){
+                        env.UNDER_DEPLOYMENT_COLOR = env.COLOR
+                    }else{
+                        env.USER_DEPLOYMENT_COLOR = env.COLOR
+                    }
+
+                    sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                }
+            }        
+        }
+    }
+}
