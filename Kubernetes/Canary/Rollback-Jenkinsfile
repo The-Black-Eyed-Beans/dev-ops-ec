@@ -1,67 +1,108 @@
 pipeline {
     agent any
+    
+    parameters{
+        string(name: 'MICROSERVICE', defaultValue: 'bank', description: 'Microservice you are rolling back')
+    }
 
     stages {
         stage("Get current state of deployment") {
             steps {
                 script {
-                    def output = sh(returnStdout: true, script: "kubectl get service -n afs-ec")
-                    if(output.contains("green") && output.contains("blue")){
-                        env.DEPLOYMENT_STATE = "both"
-                        def ingress_output = sh(returnStdout: true, script: "kubectl get ingress main-ingress -o yaml -n afs-ec")
-                        if(ingress_output.contains("blue")){
-                            env.DELETE_COLOR = "green"
-                        }else if(ingress_output.contains("green")){
-                            env.DELETE_COLOR = "blue"
-                        }else{
-                            echo "Error: Services were running but no ingress was created"
-                            return
-                        }
-                    }else if(output.contains("green")){
-                        env.DEPLOYMENT_STATE = "one"
-                        env.DELETE_COLOR = "green"
-                    }else if(output.contains("blue")){
-                        env.DEPLOYMENT_STATE = "one"
-                        env.DELETE_COLOR = "blue"
+                    def output = sh(returnStdout: true, script: "kubectl get deploy -n afs-ec")
+                    if(output.contains("${MICROSERVICE}-deployment-green") && output.contains("${MICROSERVICE}-deployment-blue")){
+                        env.ROLLBACK_TARGET = "canary"
+                    }else if(output.contains("${MICROSERVICE}-deployment-green") || output.contains("${MICROSERVICE}-deployment-blue")){
+                        env.ROLLBACK_TARGET = "main"
                     }else{
-                        echo "No deployments running so therefore no need to rollback"
-                        return
+                        error "Nothing to roll back"
+                    }
+
+                    def bank_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-${ROLLBACK_TARGET} -o yaml -n afs-ec | grep 'targetPort: bank'")
+                    if(bank_output.contains("green")){
+                        env.BANK_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.BANK_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def trans_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-${ROLLBACK_TARGET} -o yaml -n afs-ec | grep 'targetPort: trans'")
+                    if(trans_output.contains("green")){
+                        env.TRANS_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.TRANS_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def under_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-${ROLLBACK_TARGET} -o yaml -n afs-ec | grep 'targetPort: under'")
+                    if(under_output.contains("green")){
+                        env.UNDER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.UNDER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def user_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-${ROLLBACK_TARGET} -o yaml -n afs-ec | grep 'targetPort: user'")
+                    if(user_output.contains("green")){
+                        env.USER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.USER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    if(env.MICROSERVICE == "bank"){
+                        env.COLOR = env.BANK_DEPLOYMENT_COLOR
+                    }else if(env.MICROSERVICE == "trans"){
+                        env.COLOR = env.TRANS_DEPLOYMENT_COLOR
+                    }else if(env.MICROSERVICE == "under"){
+                        env.COLOR = env.UNDER_DEPLOYMENT_COLOR
+                    }else if(env.MICROSERVICE == "user"){
+                        env.COLOR = env.USER_DEPLOYMENT_COLOR
+                    }else{
+                        error "Invalid microservice parameter"
                     }
                 }
             }
         }
 
-        stage("Delete unused canary ingress") {
+        stage("Delete current deployment"){
+            steps{
+                sh "kubectl delete deploy aline-${MICROSERVICE}-deployment-${COLOR} -n afs-ec"
+            }
+        }
+
+        stage("Rollback to previous deployment"){
             when {
-                environment(name: "DEPLOYMENT_STATE", value: "both")
+                environment(name: "ROLLBACK_TARGET", value: "canary")
             }
             steps{
-                dir('Kubernetes/BlueGreen'){
-                    sh "kubectl delete ingress canary-ingress -n afs-ec"
+                script{
+                    def output = sh(returnStdout: true, script: "kubectl get deploy -n afs-ec")
+                    if(env.MICROSERVICE == "bank"){
+                        if(env.COLOR == "green"){
+                            env.BANK_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.BANK_DEPLOYMENT_COLOR = "green"
+                        }
+                    }else if(env.MICROSERVICE == "trans"){
+                        if(env.COLOR == "green"){
+                            env.TRANS_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.TRANS_DEPLOYMENT_COLOR = "green"
+                        }
+                    }else if(env.MICROSERVICE == "under"){
+                        if(env.COLOR == "green"){
+                            env.UNDER_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.UNDER_DEPLOYMENT_COLOR = "green"
+                        }
+                    }else{
+                        if(env.COLOR == "green"){
+                            env.USER_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.USER_DEPLOYMENT_COLOR = "green"
+                        }
+                    }
+                    dir('Kubernetes/Canary'){
+                        sh "envsubst < backend-service-canary.yaml | kubectl apply -f -"
+                    }
                 }
-            }
-        }
-
-        stage("Delete unused main ingress") {
-            when {
-                environment(name: "DEPLOYMENT_STATE", value: "one")
-            }
-            steps{
-                sh "kubectl delete ingress main-ingress -n afs-ec"
-            }
-        }
-
-        stage("Delete infrastructure from rolled-back deployment"){
-            steps{
-                dir('Kubernetes/BlueGreen'){
-                    sh "kubectl delete deploy aline-bank-deployment-${DELETE_COLOR} -n afs-ec"
-                    sh "kubectl delete deploy aline-trans-deployment-${DELETE_COLOR} -n afs-ec"
-                    sh "kubectl delete deploy aline-under-deployment-${DELETE_COLOR} -n afs-ec"
-                    sh "kubectl delete deploy aline-user-deployment-${DELETE_COLOR} -n afs-ec"
-                    sh "kubectl delete deploy aline-gateway-deployment-${DELETE_COLOR} -n afs-ec"
-                    sh "kubectl delete service aline-backend-service-${DELETE_COLOR} -n afs-ec"
-                    sh "kubectl delete service aline-gateway-service-${DELETE_COLOR} -n afs-ec"
-                }  
             }
         }
     }
