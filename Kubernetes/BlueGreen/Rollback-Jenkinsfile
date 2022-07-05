@@ -37,9 +37,67 @@ pipeline {
                         env.USER_DEPLOYMENT_COLOR = "blue"
                     }
 
-                    if(env.microservice == "bank"){
-                        echo "${BANK_DEPLOYMENT_COLOR}"
+                    if(env.MICROSERVICE == "bank"){
+                        env.COLOR = env.BANK_DEPLOYMENT_COLOR
+                    }else if(env.MICROSERVICE == "trans"){
+                        env.COLOR = env.TRANS_DEPLOYMENT_COLOR
+                    }else if(env.MICROSERVICE == "under"){
+                        env.COLOR = env.UNDER_DEPLOYMENT_COLOR
+                    }else if(env.MICROSERVICE == "user"){
+                        env.COLOR = env.USER_DEPLOYMENT_COLOR
+                    }else{
+                        echo "Invalid microservice parameter"
+                        return
                     }
+                }
+            }
+        }
+
+        stage("Delete current deployment"){
+            steps{
+                script{
+                    def output = sh(returnStdout: true, script: "kubectl get deploy -n afs-ec")
+                    if(output.contains("${MICROSERVICE}-deployment")){
+                        sh "kubectl delete deploy aline-${MICROSERVICE}-deployment-${COLOR} -n afs-ec"
+                    }else{
+                        echo "Nothing to delete"
+                        return
+                    }
+                }
+            }
+        }
+
+        stage("Rollback to previous deployment"){
+            steps{
+                script{
+                    def output = sh(returnStdout: true, script: "kubectl get deploy -n afs-ec")
+                    if(env.MICROSERVICE == "bank"){
+                        if(env.COLOR == "green"){
+                            env.BANK_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.BANK_DEPLOYMENT_COLOR = "green"
+                        }
+                    }else if(env.MICROSERVICE == "trans"){
+                        if(env.COLOR == "green"){
+                            env.TRANS_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.TRANS_DEPLOYMENT_COLOR = "green"
+                        }
+                    }else if(env.MICROSERVICE == "under"){
+                        if(env.COLOR == "green"){
+                            env.UNDER_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.UNDER_DEPLOYMENT_COLOR = "green"
+                        }
+                    }else{
+                        if(env.COLOR == "green"){
+                            env.USER_DEPLOYMENT_COLOR = "blue"
+                        }else{
+                            env.USER_DEPLOYMENT_COLOR = "green"
+                        }
+                    }
+
+                    sh "envsubst < backend-service.yaml | kubectl apply -f -"
                 }
             }
         }
