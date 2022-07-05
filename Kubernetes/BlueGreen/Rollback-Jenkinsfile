@@ -1,71 +1,46 @@
 pipeline {
     agent any
+    
+    parameters{
+        string(name: 'MICROSERVICE', defaultValue: 'bank', description: 'Microservice you are rolling back')
+    }
 
     stages {
         stage("Get current state of deployment") {
             steps {
                 script {
-                    def output = sh(returnStdout: true, script: "kubectl get service -n afs-ec")
-                    if(output.contains("green") && output.contains("blue")){
-                        env.DEPLOYMENT_STATE = "both"
-                        def ingress_output = sh(returnStdout: true, script: "kubectl get ingress main-ingress -o yaml -n afs-ec")
-                        if(ingress_output.contains("blue")){
-                            env.MAIN_COLOR = "green"
-                            env.PREV_COLOR = "blue"
-                        }else if(ingress_output.contains("green")){
-                            env.MAIN_COLOR = "blue"
-                            env.PREV_COLOR = "green"
-                        }else{
-                            echo "Error: Services were running but no ingress was created"
-                            return
-                        }
-                    }else if(output.contains("green")){
-                        env.DEPLOYMENT_STATE = "one"
-                        env.MAIN_COLOR = "blue"
-                        env.PREV_COLOR = "green"
-                    }else if(output.contains("blue")){
-                        env.DEPLOYMENT_STATE = "one"
-                        env.MAIN_COLOR = "green"
-                        env.PREV_COLOR = "blue"
+                    def bank_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: bank'")
+                    if(bank_output.contains("green")){
+                        env.BANK_DEPLOYMENT_COLOR = "green"
                     }else{
-                        echo "No deployments running so therefore no need to rollback"
-                        return
+                        env.BANK_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def trans_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: trans'")
+                    if(trans_output.contains("green")){
+                        env.TRANS_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.TRANS_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def under_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: under'")
+                    if(under_output.contains("green")){
+                        env.UNDER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.UNDER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def user_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: user'")
+                    if(user_output.contains("green")){
+                        env.USER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.USER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    if(env.microservice == "bank"){
+                        echo "${BANK_DEPLOYMENT_COLOR}"
                     }
                 }
-            }
-        }
-
-        stage("Rollback to previous deployment") {
-            when {
-                environment(name: "DEPLOYMENT_STATE", value: "both")
-            }
-            steps{
-                dir('Kubernetes/BlueGreen'){
-                    sh "envsubst < main-ingress.yaml | kubectl apply -f -"
-                }
-            }
-        }
-
-        stage("Delete unused ingress") {
-            when {
-                environment(name: "DEPLOYMENT_STATE", value: "one")
-            }
-            steps{
-                sh "kubectl delete ingress main-ingress -n afs-ec"
-            }
-        }
-
-        stage("Delete infrastructure from rolled-back deployment"){
-            steps{
-                dir('Kubernetes/BlueGreen'){
-                    sh "kubectl delete deploy aline-bank-deployment-${PREV_COLOR} -n afs-ec"
-                    sh "kubectl delete deploy aline-trans-deployment-${PREV_COLOR} -n afs-ec"
-                    sh "kubectl delete deploy aline-under-deployment-${PREV_COLOR} -n afs-ec"
-                    sh "kubectl delete deploy aline-user-deployment-${PREV_COLOR} -n afs-ec"
-                    sh "kubectl delete deploy aline-gateway-deployment-${PREV_COLOR} -n afs-ec"
-                    sh "kubectl delete service aline-backend-service-${PREV_COLOR} -n afs-ec"
-                    sh "kubectl delete service aline-gateway-service-${PREV_COLOR} -n afs-ec"
-                }  
             }
         }
     }
