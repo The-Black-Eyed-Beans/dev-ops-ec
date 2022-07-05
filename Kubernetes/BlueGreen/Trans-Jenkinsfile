@@ -43,7 +43,7 @@ pipeline {
                     }
 
                     def bank_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service -o yaml -n afs-ec | grep 'targetPort: bank'")
-                    if(trans_output.contains("green")){
+                    if(bank_output.contains("green")){
                         env.BANK_DEPLOYMENT_COLOR = "green"
                     }else{
                         env.BANK_DEPLOYMENT_COLOR = "blue"
