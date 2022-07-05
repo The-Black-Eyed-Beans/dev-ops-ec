@@ -46,8 +46,7 @@ pipeline {
                     }else if(env.MICROSERVICE == "user"){
                         env.COLOR = env.USER_DEPLOYMENT_COLOR
                     }else{
-                        echo "Invalid microservice parameter"
-                        return
+                        error "Invalid microservice parameter"
                     }
                 }
             }
@@ -60,8 +59,7 @@ pipeline {
                     if(output.contains("${MICROSERVICE}-deployment")){
                         sh "kubectl delete deploy aline-${MICROSERVICE}-deployment-${COLOR} -n afs-ec"
                     }else{
-                        echo "Nothing to delete"
-                        return
+                        error "Nothing to delete"
                     }
                 }
             }

@@ -28,8 +28,7 @@ pipeline {
                             env.DEPLOYMENT_COLOR = "blue"
                             env.BANK_DEPLOYMENT_COLOR = "blue"
                         }else{
-                            echo "Error: Backend service not currently running"
-                            return
+                            error "Error: Backend service not currently running"
                         }
                     }else if(output.contains("bank-deployment-green")){
                         env.DEPLOYMENT_COLOR = "blue"
