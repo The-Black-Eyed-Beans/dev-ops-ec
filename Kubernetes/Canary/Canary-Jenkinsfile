@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+    
+    parameters{
+        string(name: 'CANARY_WEIGHT', defaultValue: '20', description: 'Percentage canary deployment will be served instead of main')
+    }
+
+    stages {
+        stage("Update Canary Ingress") {
+            script{
+                dir('Kubernetes/BlueGreen'){
+                    sh "envsubst < canary-ingress.yaml | kubectl apply -f -"
+                }
+            }
+        }
+    }
+}
