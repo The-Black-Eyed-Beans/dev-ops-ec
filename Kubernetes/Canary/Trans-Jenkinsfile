@@ -1,0 +1,179 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = credentials("AWS_REGION")
+        AWS_ID = credentials("AWS_ID")
+        COMMIT_HASH = "latest"
+        TRANS_REPLICAS = 1
+    }
+
+    stages {
+        stage("Get current state of deployment") {
+            steps {
+                script {
+                    def output = sh(returnStdout: true, script: "kubectl get deploy -n afs-ec")
+                    if(output.contains("trans-deployment-green") && output.contains("trans-deployment-blue")){
+                        env.DEPLOYMENT_STATE = "both"
+                        def trans_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: trans'")
+                        if(trans_output.contains("blue")){
+                            env.DEPLOYMENT_COLOR = "blue"
+                            env.TRANS_DEPLOYMENT_COLOR = "blue"
+                            env.MAIN_COLOR = "green"
+                        }else if(trans_output.contains("green")){
+                            env.DEPLOYMENT_COLOR = "green"
+                            env.TRANS_DEPLOYMENT_COLOR = "green"
+                            env.MAIN_COLOR = "blue"
+                        }else{
+                            error "Error: Main backend service not currently running"
+                        }
+                    }else if(output.contains("trans-deployment-green")){
+                        env.DEPLOYMENT_STATE = "one"
+                        env.DEPLOYMENT_COLOR = "blue"
+                        env.trans_DEPLOYMENT_COLOR = "blue"
+                    }else if(output.contains("trans-deployment-blue")){
+                        env.DEPLOYMENT_STATE = "one"
+                        env.DEPLOYMENT_COLOR = "green"
+                        env.TRANS_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.DEPLOYMENT_STATE = "neither"
+                        env.DEPLOYMENT_COLOR = "blue"
+                        env.TRANS_DEPLOYMENT_COLOR = "blue"
+                    }
+                }
+            }
+        }
+
+        stage("Both deployed"){
+            when {
+                environment(name: "DEPLOYMENT_STATE", value: "both")
+            }
+            steps{
+                script{
+                    def bank_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-canary -o yaml -n afs-ec | grep 'targetPort: bank'")
+                    if(bank_output.contains("green")){
+                        env.BANK_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.BANK_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def under_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-canary -o yaml -n afs-ec | grep 'targetPort: under'")
+                    if(under_output.contains("green")){
+                        env.UNDER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.UNDER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def user_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-canary -o yaml -n afs-ec | grep 'targetPort: user'")
+                    if(user_output.contains("green")){
+                        env.USER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.USER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    dir('Kubernetes/Canary'){
+                        sh "envsubst < aline-trans.yaml | kubectl apply -f -"
+                        sh "envsubst < backend-service-canary.yaml | kubectl apply -f -"
+                    }
+
+                    env.TRANS_DEPLOYMENT_COLOR = env.MAIN_COLOR
+
+                    bank_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: bank'")
+                    if(bank_output.contains("green")){
+                        env.BANK_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.BANK_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    under_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: under'")
+                    if(under_output.contains("green")){
+                        env.UNDER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.UNDER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    user_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: user'")
+                    if(user_output.contains("green")){
+                        env.USER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.USER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    dir('Kubernetes/Canary'){
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                    }
+                }
+            }
+        }
+
+        stage("One deployed"){
+            when {
+                environment(name: "DEPLOYMENT_STATE", value: "one")
+            }
+            steps{
+                script{
+                    def bank_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-canary -o yaml -n afs-ec | grep 'targetPort: bank'")
+                    if(bank_output.contains("green")){
+                        env.BANK_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.BANK_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def under_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-canary -o yaml -n afs-ec | grep 'targetPort: under'")
+                    if(under_output.contains("green")){
+                        env.UNDER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.UNDER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def user_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-canary -o yaml -n afs-ec | grep 'targetPort: user'")
+                    if(user_output.contains("green")){
+                        env.USER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.USER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    dir('Kubernetes/Canary'){
+                        sh "envsubst < aline-trans.yaml | kubectl apply -f -"
+                        sh "envsubst < backend-service-canary.yaml | kubectl apply -f -"
+                    }
+                }
+            }
+        }
+
+        stage("Neither deployed"){
+            when {
+                environment(name: "DEPLOYMENT_STATE", value: "neither")
+            }
+            steps{
+                script{
+                    def bank_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: bank'")
+                    if(bank_output.contains("green")){
+                        env.BANK_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.BANK_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def under_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: under'")
+                    if(under_output.contains("green")){
+                        env.UNDER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.UNDER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    def user_output = sh(returnStdout: true, script: "kubectl get service aline-backend-service-main -o yaml -n afs-ec | grep 'targetPort: user'")
+                    if(user_output.contains("green")){
+                        env.USER_DEPLOYMENT_COLOR = "green"
+                    }else{
+                        env.USER_DEPLOYMENT_COLOR = "blue"
+                    }
+
+                    dir('Kubernetes/Canary'){
+                        sh "envsubst < aline-trans.yaml | kubectl apply -f -"
+                        sh "envsubst < backend-service.yaml | kubectl apply -f -"
+                    }
+                }
+            }
+        }
+    }
+}
