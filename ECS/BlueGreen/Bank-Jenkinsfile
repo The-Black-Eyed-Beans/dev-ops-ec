@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+
+    parameters{
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Version of microservice to deploy')
+        string(name: 'SLEEP_AMOUNT', defaultValue: '15', description: 'How long to sleep before testing deployment')
+    }
+
+    environment {
+        MICROSERVICE = "bank"
+        IMAGE_NAME = "bank-microservice-ec"
+        ENV_STAGE = "dev"
+        APP_PORT = "8083"
+        TEST_PORT = "8063"
+        HOST = "microservice-ec.theblackeyedbeans.net"
+    }
+
+    stages {
+        stage("Get initial state"){
+            steps{
+                script{ 
+                    def current_stacks = sh(returnStdout: true, script: "aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE")
+                    if(current_stacks.contains("afs-ec-" + env.MICROSERVICE + "-blue")){
+                        def listener_output = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-blue | jq -r .'Stacks[0]' | jq -r .'Parameters[0]'")
+                        if(listener_output.contains(env.APP_PORT)){
+                            env.COLOR = "green"
+                        }else{
+                            env.COLOR = "blue"
+                        }
+                    }else if(current_stacks.contains("afs-ec-" + env.MICROSERVICE + "-green")){
+                        def listener_output = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-green | jq -r .'Stacks[0]' | jq -r .'Parameters[0]'")
+                        if(listener_output.contains(env.APP_PORT)){
+                            env.COLOR = "blue"
+                        }else{
+                            env.COLOR = "green"
+                        }
+                    }else{
+                        error "No stacks currently deployed"
+                    }
+                }
+            }
+        }
+
+        stage("Create new deployment") {
+            steps {
+                dir('ECS/BlueGreen'){
+                    sh '''
+                        aws cloudformation deploy \
+                            --stack-name afs-ec-${MICROSERVICE}-${COLOR} \
+                            --template-file microservice-stack.yaml \
+                            --parameter-overrides \
+                                AppPort=${APP_PORT} \
+                                Color=${COLOR} \
+                                ListenerPort=${TEST_PORT} \
+                                ImageName=${IMAGE_NAME} \
+                                ImageTag=${IMAGE_TAG} \
+                                Microservice=${MICROSERVICE} \
+                                EnvStage=${ENV_STAGE} \
+                            --no-fail-on-empty-changeset
+                    '''
+                }
+            }
+        }
+        
+        stage("Test deployment"){
+            steps{
+                script{
+                    sh "sleep ${SLEEP_AMOUNT}"
+                    def code = sh(script: "curl -s -w '%{response_code}' ${HOST}:${APP_PORT}/health", returnStdout: true)
+                    if(code == "200"){
+                        echo "Health check passed"
+                    }else{
+                        echo "Health check failed"
+                        //sh "aws cloudformation delete-stack --stack-name afs-ec-${MICROSERVICE}-${COLOR}"
+                    }
+                }
+            }
+        }
+    }
+}
