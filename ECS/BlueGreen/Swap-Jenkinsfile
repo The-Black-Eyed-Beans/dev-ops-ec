@@ -59,7 +59,7 @@ pipeline {
             }
         }
 
-        stage("Create new deployment") {
+        stage("Update deployments") {
             steps {
                 dir('ECS/BlueGreen'){
                     // Move current live deployment off of main port
