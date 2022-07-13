@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Add/update microservice in ECS cluster"
+
+Parameters:
+
+  AppPort:
+    Type: String
+    Description: The port the app will be running on
+
+  Color:
+    Type: String
+    Description: Color of current deployment
+
+  ListenerPort:
+    Type: String
+    Description: Port on ALB to listen to
+
+  EnvStage:
+    Type: String
+    Description: What the current environment stage is
+    Default: dev
+
+  TaskNumber:
+    Type: Number
+    Description: Desired number of tasks for the service
+    Default: 1
+
+  MicroserviceMemory: 
+    Type: Number
+    Description: Memory required for a task
+    Default: 2048
+
+  MicroserviceCpu:
+    Type: Number
+    Description: Cpu required for a task
+    Default: 512
+
+  Microservice:
+    Type: String
+    Description: Name of the microservice being deployed
+
+  ImageName:
+    Type: String
+    Description: The name of the image being pulled from the ECR
+
+  ImageTag:
+    Type: String
+    Description: The tag to use for the ECR image
+
+Resources:
+
+  AppService:
+    Type: AWS::ECS::Service
+    DependsOn: AppListener
+    Properties:
+      ServiceName: !Sub afs-ec-${Microservice}-${EnvStage}-${Color}
+      Cluster: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/resources:SecretString:ClusterArn}}'
+      TaskDefinition: !Ref AppTaskDef
+      DesiredCount: !Ref TaskNumber
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/resources:SecretString:PublicSubnetID1}}'
+            - !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/resources:SecretString:PublicSubnetID2}}'
+          SecurityGroups:
+            - !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/resources:SecretString:ServiceSG}}'
+      LoadBalancers:
+        - ContainerName: !Sub afs-ec-${Microservice}-${EnvStage}-${Color}
+          ContainerPort: !Ref AppPort
+          TargetGroupArn: !Ref AppTargetGroup
+
+  AppListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/resources:SecretString:LBArn1}}'
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AppTargetGroup
+      Port: !Ref ListenerPort
+      Protocol: HTTP
+
+  AppTaskDef:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub afs-ec-${EnvStage}
+      RequiresCompatibilities:
+        - FARGATE
+      Memory: !Ref MicroserviceMemory
+      Cpu: !Ref MicroserviceCpu
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/resources:SecretString:ExecRoleArn}}'
+      TaskRoleArn: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/resources:SecretString:TaskRoleArn}}'
+      ContainerDefinitions:
+        - Name: !Sub afs-ec-${Microservice}-${EnvStage}-${Color}
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ImageName}:${ImageTag}'
+          PortMappings:
+            - ContainerPort: !Ref AppPort
+          Environment:
+            - Name: APP_PORT
+              Value: !Ref AppPort
+            - Name: ENCRYPT_SECRET_KEY
+              Value: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/secrets:SecretString:ENCRYPT_SECRET_KEY}}'
+            - Name: JWT_SECRET_KEY
+              Value: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/secrets:SecretString:JWT_SECRET_KEY}}'
+            - Name: DB_USERNAME
+              Value: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/secrets:SecretString:DB_USERNAME}}'
+            - Name: DB_PASSWORD
+              Value: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/secrets:SecretString:DB_PASSWORD}}'
+            - Name: DB_HOST
+              Value: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/secrets:SecretString:DB_HOST}}'
+            - Name: DB_PORT
+              Value: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/secrets:SecretString:DB_PORT}}'
+            - Name: DB_NAME
+              Value: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/secrets:SecretString:DB_NAME}}'
+          Essential: true
+          Memory: 2048
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub ec-afs-${Microservice}-logs
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: !Sub ${Microservice}
+
+  AppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ec-afs-${Microservice}-tg-${Color}
+      Port: !Ref AppPort
+      HealthCheckIntervalSeconds: 60
+      HealthCheckPath: '/health'
+      HealthCheckTimeoutSeconds: 5
+      HealthCheckPort: !Ref AppPort
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60'
+      TargetType: ip
+      VpcId: !Sub '{{resolve:secretsmanager:afs-ec/${EnvStage}/resources:SecretString:VPCID}}'
