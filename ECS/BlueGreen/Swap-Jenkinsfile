@@ -1,0 +1,114 @@
+pipeline {
+    agent any
+
+    parameters{
+        string(name: 'MICROSERVICE', defaultValue: 'bank', description: 'Microservice to swap deployments for')
+    }
+
+    environment {
+        ENV_STAGE = "dev"
+        TEMP_PORT = "8050"
+    }
+
+    stages {
+        stage("Set up environment"){
+            steps{
+                script{
+                    if(env.MICROSERVICE == "bank"){
+                        env.IMAGE_NAME = "bank-microservice-ec"
+                        env.APP_PORT = "8083"
+                        env.TEST_PORT = "8063"
+                    }else if(env.MICROSERVICE == "trans"){
+                        env.IMAGE_NAME = "transaction-microservice-ec"
+                        env.APP_PORT = "8073"
+                        env.TEST_PORT = "8062"
+                    }else if(env.MICROSERVICE == "under"){
+                        env.IMAGE_NAME = "underwriter-microservice-ec"
+                        env.APP_PORT = "8071"
+                        env.TEST_PORT = "8061"
+                    }else if(env.MICROSERVICE == "user"){
+                        env.IMAGE_NAME = "user-microservice-ec"
+                        env.APP_PORT = "8070"
+                        env.TEST_PORT = "8060"
+                    }else{
+                        error "Invalid microservice parameter"
+                    }
+                }
+            }
+        }
+
+        stage("Get initial state"){
+            steps{
+                script{ 
+                    def current_stacks = sh(returnStdout: true, script: "aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE")
+                    if(current_stacks.contains("afs-ec-" + env.MICROSERVICE + "-blue") && current_stacks.contains("afs-ec-" + env.MICROSERVICE + "-green")){
+                        def listener_output = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-blue | jq -r .'Stacks[0]' | jq -r .'Parameters[0]'")
+                        if(listener_output.contains(env.APP_PORT)){
+                            env.MAIN_COLOR = "blue"
+                            env.TEST_COLOR = "green"
+                        }else{
+                            env.MAIN_COLOR = "green"
+                            env.TEST_COLOR = "blue"
+                        }
+                        env.MAIN_TAG = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} | jq -r .'Stacks[0]' | jq -r .'Parameters[2]' | jq -r .'ParameterValue'")
+                        env.TEST_TAG = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${TEST_COLOR} | jq -r .'Stacks[0]' | jq -r .'Parameters[2]' | jq -r .'ParameterValue'")
+                    }else{
+                        error "Not enough deployments to swap"
+                    }
+                }
+            }
+        }
+
+        stage("Create new deployment") {
+            steps {
+                dir('ECS/BlueGreen'){
+                    // Move current live deployment off of main port
+                    sh '''
+                        aws cloudformation deploy \
+                            --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} \
+                            --template-file microservice-stack.yaml \
+                            --parameter-overrides \
+                                AppPort=${APP_PORT} \
+                                Color=${MAIN_COLOR} \
+                                ListenerPort=${TEMP_PORT} \
+                                ImageName=${IMAGE_NAME} \
+                                ImageTag=${MAIN_TAG} \
+                                Microservice=${MICROSERVICE} \
+                                EnvStage=${ENV_STAGE} \
+                            --no-fail-on-empty-changeset
+                    '''
+                    // Move test deployment to main port
+                    sh '''
+                        aws cloudformation deploy \
+                            --stack-name afs-ec-${MICROSERVICE}-${TEST_COLOR} \
+                            --template-file microservice-stack.yaml \
+                            --parameter-overrides \
+                                AppPort=${APP_PORT} \
+                                Color=${TEST_COLOR} \
+                                ListenerPort=${APP_PORT} \
+                                ImageName=${IMAGE_NAME} \
+                                ImageTag=${TEST_TAG} \
+                                Microservice=${MICROSERVICE} \
+                                EnvStage=${ENV_STAGE} \
+                            --no-fail-on-empty-changeset
+                    '''
+                    // Move former main deployment to test port
+                    sh '''
+                        aws cloudformation deploy \
+                            --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} \
+                            --template-file microservice-stack.yaml \
+                            --parameter-overrides \
+                                AppPort=${APP_PORT} \
+                                Color=${MAIN_COLOR} \
+                                ListenerPort=${TEST_PORT} \
+                                ImageName=${IMAGE_NAME} \
+                                ImageTag=${MAIN_TAG} \
+                                Microservice=${MICROSERVICE} \
+                                EnvStage=${ENV_STAGE} \
+                            --no-fail-on-empty-changeset
+                    '''
+                }
+            }
+        }
+    }
+}
