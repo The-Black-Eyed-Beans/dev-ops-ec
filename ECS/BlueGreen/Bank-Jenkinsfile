@@ -66,12 +66,12 @@ pipeline {
             steps{
                 script{
                     sh "sleep ${SLEEP_AMOUNT}"
-                    def code = sh(script: "curl -s -w '%{response_code}' ${HOST}:${APP_PORT}/health", returnStdout: true)
+                    def code = sh(script: "curl -s -w '%{response_code}' ${HOST}:${TEST_PORT}/health", returnStdout: true)
                     if(code == "200"){
                         echo "Health check passed"
                     }else{
                         echo "Health check failed"
-                        //sh "aws cloudformation delete-stack --stack-name afs-ec-${MICROSERVICE}-${COLOR}"
+                        sh "aws cloudformation delete-stack --stack-name afs-ec-${MICROSERVICE}-${COLOR}"
                     }
                 }
             }
