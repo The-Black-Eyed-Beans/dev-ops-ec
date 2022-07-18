@@ -7,11 +7,11 @@ pipeline {
     }
 
     environment {
-        MICROSERVICE = "bank"
-        IMAGE_NAME = "bank-microservice-ec"
+        MICROSERVICE = "under"
+        IMAGE_NAME = "underwriter-microservice-ec"
         ENV_STAGE = "dev"
-        APP_PORT = "8083"
-        TEST_PORT = "8063"
+        APP_PORT = "8071"
+        TEST_PORT = "8061"
         HOST = "microservice-ec.theblackeyedbeans.net"
     }
 
