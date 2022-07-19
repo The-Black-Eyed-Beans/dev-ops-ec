@@ -48,17 +48,6 @@ pipeline {
             }
         }
 
-        stage("Save resource values") {
-            steps{
-                script{
-                    env.MAIN_LISTENER = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[0]' | jq -r .'OutputValue'")
-                    env.MAIN_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
-                    env.CANARY_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${CANARY_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
-                    env.CANARY_WEIGHT = 100 - env.MAIN_WEIGHT.toInteger()
-                }
-            }
-        }
-
         stage("Create/update canary deployment") {
             steps {
                 dir('ECS/Canary'){
@@ -76,6 +65,17 @@ pipeline {
                                 EnvStage=${ENV_STAGE} \
                             --no-fail-on-empty-changeset
                     '''
+                }
+            }
+        }
+
+        stage("Save resource values") {
+            steps{
+                script{
+                    env.MAIN_LISTENER = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[0]' | jq -r .'OutputValue'")
+                    env.MAIN_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
+                    env.CANARY_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${CANARY_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
+                    env.CANARY_WEIGHT = 100 - env.MAIN_WEIGHT.toInteger()
                 }
             }
         }
