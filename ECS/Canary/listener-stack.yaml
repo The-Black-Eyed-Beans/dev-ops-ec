@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Update listeners for Canary Deployments"
+
+Parameters:
+  MainTargetGroup:
+    Type: String
+    Description: ARN of target group for main deployment
+
+  CanaryTargetGroup:
+    Type: String
+    Description: ARN of target group for canary deployment
+
+  MainListener:
+    Type: String
+    Description: ARN of listener for main deployment
+
+  MainWeight:
+    Type: String
+    Description: Percentage of requests to be forwarded to main deployment
+
+  CanaryWeight:
+    Type: String
+    Description: Percentage of requests to be forwarded to canary deployment
+
+
+Resources:
+  AppListenerRule:
+      Type: AWS::ElasticLoadBalancingV2::ListenerRule
+      Properties:
+        Actions:
+          - ForwardConfig: 
+              TargetGroups:
+                - TargetGroupArn: !Ref MainTargetGroup
+                  Weight: !Ref MainWeight
+                - TargetGroupArn: !Ref CanaryTargetGroup
+                  Weight: !Ref CanaryWeight
+            Order: 1
+            Type: forward
+        Conditions:
+          - Field: path-pattern
+            PathPatternConfig:
+              Values: 
+                - "/*"
+        ListenerArn: !Ref MainListener
+        Priority: 10
+
+ 
