@@ -7,13 +7,31 @@ pipeline {
     }
 
     stages{
-        stage("Get initial state"){
+        stage("Set up environment"){
             steps{
                 script{
                     if(env.MAIN_WEIGHT.toInteger() > 100 || env.MAIN_WEIGHT.toInteger() < 0){
                         error 'Main weight must be between 0 to 100'
                     }
+                    
+                    if(env.MICROSERVICE == "bank"){
+                        env.APP_PORT = "8083"
+                    }else if(env.MICROSERVICE == "trans"){
+                        env.APP_PORT = "8073"
+                    }else if(env.MICROSERVICE == "under"){
+                        env.APP_PORT = "8071"
+                    }else if(env.MICROSERVICE == "user"){
+                        env.APP_PORT = "8070"
+                    }else{
+                        error "Invalid microservice parameter"
+                    }
+                }
+            }
+        }
 
+        stage("Get initial state"){
+            steps{
+                script{
                     def current_stacks = sh(returnStdout: true, script: "aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE")
                     if(current_stacks.contains("afs-ec-" + env.MICROSERVICE + "-blue") && current_stacks.contains("afs-ec-" + env.MICROSERVICE + "-green")){
                         def listener_output = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-blue | jq -r .'Stacks[0]' | jq -r .'Parameters[0]'")
