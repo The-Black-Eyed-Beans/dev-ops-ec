@@ -1,0 +1,102 @@
+pipeline {
+    agent any
+
+    parameters{
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Version of microservice to deploy')
+        string(name: 'MAIN_WEIGHT', defaultValue: '80', description: 'Percentage of requests that get forwarded to main deployment')
+    }
+
+    environment {
+        MICROSERVICE = "under"
+        IMAGE_NAME = "underwriter-microservice-ec"
+        ENV_STAGE = "dev"
+        APP_PORT = "8071"
+        TEST_PORT = "8061"
+    }
+
+    stages {
+        stage("Get initial state"){
+            steps{
+                script{
+                    if(env.MAIN_WEIGHT.toInteger() > 100 || env.MAIN_WEIGHT.toInteger() < 0){
+                        error 'Main weight must be between 0 to 100'
+                    }
+                    
+                    def current_stacks = sh(returnStdout: true, script: "aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE")
+                    if(current_stacks.contains("afs-ec-" + env.MICROSERVICE + "-blue")){
+                        def listener_output = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-blue | jq -r .'Stacks[0]' | jq -r .'Parameters[0]'")
+                        if(listener_output.contains(env.APP_PORT)){
+                            env.CANARY_COLOR = "green"
+                            env.MAIN_COLOR = "blue"
+                        }else{
+                            env.CANARY_COLOR = "blue"
+                            env.MAIN_COLOR = "green"
+                        }
+                    }else if(current_stacks.contains("afs-ec-" + env.MICROSERVICE + "-green")){
+                        def listener_output = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-green | jq -r .'Stacks[0]' | jq -r .'Parameters[0]'")
+                        if(listener_output.contains(env.APP_PORT)){
+                            env.CANARY_COLOR = "blue"
+                            env.MAIN_COLOR = "green"
+                        }else{
+                            env.CANARY_COLOR = "green"
+                            env.MAIN_COLOR = "blue"
+                        }
+                    }else{
+                        error "No stacks currently deployed"
+                    }
+                }
+            }
+        }
+
+        stage("Create/update canary deployment") {
+            steps {
+                dir('ECS/Canary'){
+                    sh '''
+                        aws cloudformation deploy \
+                            --stack-name afs-ec-${MICROSERVICE}-${CANARY_COLOR} \
+                            --template-file microservice-stack.yaml \
+                            --parameter-overrides \
+                                AppPort=${APP_PORT} \
+                                Color=${CANARY_COLOR} \
+                                ListenerPort=${TEST_PORT} \
+                                ImageName=${IMAGE_NAME} \
+                                ImageTag=${IMAGE_TAG} \
+                                Microservice=${MICROSERVICE} \
+                                EnvStage=${ENV_STAGE} \
+                            --no-fail-on-empty-changeset
+                    '''
+                }
+            }
+        }
+
+        stage("Save resource values") {
+            steps{
+                script{
+                    env.MAIN_LISTENER = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[0]' | jq -r .'OutputValue'")
+                    env.MAIN_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
+                    env.CANARY_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${CANARY_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
+                    env.CANARY_WEIGHT = 100 - env.MAIN_WEIGHT.toInteger()
+                }
+            }
+        }
+
+        stage("Create/update weighted listener"){
+            steps {
+                dir('ECS/Canary'){
+                    sh '''
+                        aws cloudformation deploy \
+                            --stack-name afs-ec-${MICROSERVICE}-listener \
+                            --template-file listener-stack.yaml \
+                            --parameter-overrides \
+                                MainListener=${MAIN_LISTENER} \
+                                MainTargetGroup=${MAIN_TARGET_GROUP} \
+                                CanaryTargetGroup=${CANARY_TARGET_GROUP} \
+                                MainWeight=${MAIN_WEIGHT} \
+                                CanaryWeight=${CANARY_WEIGHT} \
+                            --no-fail-on-empty-changeset
+                    '''
+                }
+            }
+        }
+    }
+}
