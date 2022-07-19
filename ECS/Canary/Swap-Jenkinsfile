@@ -112,11 +112,15 @@ pipeline {
         }
 
         stage("Save resource values"){
-            env.MAIN_LISTENER = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${TEST_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[0]' | jq -r .'OutputValue'")
-            env.MAIN_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${TEST_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
-            env.CANARY_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
-            env.MAIN_WEIGHT = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-bank-listener | jq -r .'Stacks[0]' | jq -r .'Parameters[2]' | jq -r .'ParameterValue'")
-            env.CANARY_WEIGHT = 100 - env.MAIN_WEIGHT.toInteger()
+            steps{
+                script{
+                    env.MAIN_LISTENER = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${TEST_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[0]' | jq -r .'OutputValue'")
+                    env.MAIN_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${TEST_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
+                    env.CANARY_TARGET_GROUP = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-${MICROSERVICE}-${MAIN_COLOR} | jq -r .'Stacks[0]' | jq -r .'Outputs[1]' | jq -r .'OutputValue'")
+                    env.MAIN_WEIGHT = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name afs-ec-bank-listener | jq -r .'Stacks[0]' | jq -r .'Parameters[2]' | jq -r .'ParameterValue'")
+                    env.CANARY_WEIGHT = 100 - env.MAIN_WEIGHT.toInteger()
+                }
+            }
         }
 
         stage("Update weighted listener"){
