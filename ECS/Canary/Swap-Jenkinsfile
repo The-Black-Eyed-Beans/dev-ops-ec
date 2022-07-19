@@ -61,7 +61,7 @@ pipeline {
 
         stage("Update deployments") {
             steps {
-                dir('ECS/BlueGreen'){
+                dir('ECS/Canary'){
                     // Move current live deployment off of main port
                     sh '''
                         aws cloudformation deploy \
