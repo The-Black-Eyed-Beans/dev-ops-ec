@@ -119,7 +119,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Sub ec-afs-${Microservice}-logs
+              awslogs-group: !Sub ec-afs/${EnvStage}/canary/${Microservice}/${Color}
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: !Sub ${Microservice}
 
